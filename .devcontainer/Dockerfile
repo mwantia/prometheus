@@ -18,6 +18,7 @@ ARG USER_GID=$USER_UID
 USER $USERNAME
 WORKDIR /workspace
 
-# Install Go tools
-RUN go install golang.org/x/tools/gopls@latest && \
+# Install Go tools in src/
+RUN cd src/ && \
+    go install golang.org/x/tools/gopls@latest && \
     go install github.com/go-delve/delve/cmd/dlv@latest
