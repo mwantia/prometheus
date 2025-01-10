@@ -9,8 +9,12 @@ import (
 )
 
 type KafkaMessageHubProducer struct {
-	Topic string
+	topic string
 	conn  *kafka.Conn
+}
+
+func (p KafkaMessageHubProducer) GetName() string {
+	return p.topic
 }
 
 func (p KafkaMessageHubProducer) Write(ctx context.Context, content string) error {

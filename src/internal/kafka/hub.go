@@ -30,7 +30,7 @@ func (k *KafkaMessageHub) CreateProducer(topic string) (msg.MessageHubProducer, 
 	})
 
 	return KafkaMessageHubProducer{
-		Topic: topic,
+		topic: topic,
 		conn:  conn,
 	}, nil
 }
@@ -43,8 +43,8 @@ func (k *KafkaMessageHub) CreateConsumer(topic string) (msg.MessageHubConsumer, 
 		MaxBytes: 10e6, // 10MB
 	})
 	return KafkaMessageHubConsumer{
-		Topic:  topic,
-		Reader: reader,
+		topic:  topic,
+		reader: reader,
 	}, nil
 }
 
@@ -53,7 +53,7 @@ func (k *KafkaMessageHub) Cleanup(ctx context.Context) error {
 }
 
 func (k *KafkaMessageHub) combineTopic(topic string) string {
-	return fmt.Sprintf("%s_%s", k.Topic, topic)
+	return fmt.Sprintf("%s.%s", k.Topic, topic)
 }
 
 func init() {

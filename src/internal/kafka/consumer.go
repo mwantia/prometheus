@@ -9,8 +9,12 @@ import (
 )
 
 type KafkaMessageHubConsumer struct {
-	Topic  string
-	Reader *kafka.Reader
+	topic  string
+	reader *kafka.Reader
+}
+
+func (p KafkaMessageHubConsumer) GetName() string {
+	return p.topic
 }
 
 func (p KafkaMessageHubConsumer) Read(ctx context.Context, handler interface{}) error {
@@ -20,7 +24,7 @@ func (p KafkaMessageHubConsumer) Read(ctx context.Context, handler interface{}) 
 	}
 
 	for {
-		m, err := p.Reader.ReadMessage(ctx)
+		m, err := p.reader.ReadMessage(ctx)
 		if err != nil {
 			break
 		}
@@ -28,7 +32,7 @@ func (p KafkaMessageHubConsumer) Read(ctx context.Context, handler interface{}) 
 		ev.Handle(string(m.Value))
 	}
 
-	return p.Reader.Close()
+	return p.reader.Close()
 }
 
 func handlerForInterface(handler interface{}) msg.EventHandler {

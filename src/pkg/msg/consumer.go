@@ -3,6 +3,8 @@ package msg
 import "context"
 
 type MessageHubConsumer interface {
+	GetName() string
+
 	Read(context.Context, interface{}) error
 
 	Cleanup(context.Context) error
