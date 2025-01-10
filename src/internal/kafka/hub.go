@@ -48,6 +48,10 @@ func (k *KafkaMessageHub) CreateConsumer(topic string) (msg.MessageHubConsumer, 
 	}, nil
 }
 
+func (k *KafkaMessageHub) Cleanup(ctx context.Context) error {
+	return nil
+}
+
 func (k *KafkaMessageHub) combineTopic(topic string) string {
 	return fmt.Sprintf("%s_%s", k.Topic, topic)
 }

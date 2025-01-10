@@ -4,23 +4,22 @@ import (
 	"log"
 
 	"github.com/bwmarrin/discordgo"
-	"github.com/mwantia/prometheus/pkg/msg"
 )
 
-func (p *DiscordPlugin) configureDiscordBot(gp msg.MessageHubProducer) error {
+func (p *DiscordPlugin) configureDiscordBot() error {
 	session, err := discordgo.New("Bot " + p.Config.AuthToken)
 	if err != nil {
 		return err
 	}
 
-	session.AddHandler(p.handleMessageCreate(gp))
+	session.AddHandler(p.handleMessageCreate())
 	session.Identify.Intents = discordgo.IntentDirectMessages
 
 	p.Session = session
 	return session.Open()
 }
 
-func (p *DiscordPlugin) handleMessageCreate(gp msg.MessageHubProducer) interface{} {
+func (p *DiscordPlugin) handleMessageCreate() interface{} {
 	return func(s *discordgo.Session, m *discordgo.MessageCreate) {
 		if m.Author.ID == s.State.User.ID {
 			return
@@ -37,23 +36,29 @@ func (p *DiscordPlugin) handleMessageCreate(gp msg.MessageHubProducer) interface
 		}
 
 		if channel.Type == discordgo.ChannelTypeDM || channel.Type == discordgo.ChannelTypeGroupDM {
-			gc, err := p.Hub.CreateConsumer(m.ChannelID)
+			consumer, err := p.Hub.CreateConsumer("conversations." + m.ChannelID)
 			if err != nil {
-				log.Printf("Error creating message hub consumer")
-			}
-			defer gc.Cleanup(p.Context)
-
-			if err := gp.Write(p.Context, m.Content); err != nil {
-				log.Printf("Unable to write discord content to message hub: %v", err)
+				log.Printf("Unable to create 'conversations.<ChannelID>': %v", err)
 			}
 
-			if err := gc.Read(p.Context, p.handleMessageRespond(s, channel)); err != nil {
-				log.Printf("Error handling consumer messages: %v", err)
+			if err := p.sendConversationCreateMessage(m.ChannelID); err != nil {
+				log.Printf("Unable to write to 'conversations.create': %v", err)
 			}
 
-			return
+			if err := consumer.Read(p.Context, p.handleMessageRespond(s, channel)); err != nil {
+				log.Printf("Unable to read 'conversations.<ChannelID>': %v", err)
+			}
 		}
 	}
+}
+
+func (p *DiscordPlugin) sendConversationCreateMessage(channel string) error {
+	producer, err := p.Hub.CreateProducer("conversations.create")
+	if err != nil {
+		return err
+	}
+
+	return producer.Write(p.Context, channel)
 }
 
 func (p *DiscordPlugin) handleMessageRespond(s *discordgo.Session, c *discordgo.Channel) interface{} {

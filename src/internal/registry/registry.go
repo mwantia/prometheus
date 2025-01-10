@@ -10,7 +10,7 @@ import (
 )
 
 type PluginRegistry struct {
-	Mutex   sync.RWMutex
+	mutex   sync.RWMutex
 	Plugins map[string]*PluginInfo
 }
 
@@ -60,8 +60,8 @@ func (r *PluginRegistry) Watch(ctx context.Context) {
 }
 
 func (reg *PluginRegistry) RegisterPlugin(info *PluginInfo) error {
-	reg.Mutex.Lock()
-	defer reg.Mutex.Unlock()
+	reg.mutex.Lock()
+	defer reg.mutex.Unlock()
 
 	if _, exists := reg.Plugins[info.Name]; exists {
 		return fmt.Errorf("a plugin with the name '%s' has already been registered", info.Name)
@@ -74,8 +74,8 @@ func (reg *PluginRegistry) RegisterPlugin(info *PluginInfo) error {
 }
 
 func (reg *PluginRegistry) Deregister(name string) (*PluginInfo, error) {
-	reg.Mutex.Lock()
-	defer reg.Mutex.Unlock()
+	reg.mutex.Lock()
+	defer reg.mutex.Unlock()
 
 	plugin, exists := reg.Plugins[name]
 	if !exists {
@@ -86,16 +86,16 @@ func (reg *PluginRegistry) Deregister(name string) (*PluginInfo, error) {
 }
 
 func (reg *PluginRegistry) GetPlugin(name string) (*PluginInfo, bool) {
-	reg.Mutex.Lock()
-	defer reg.Mutex.Unlock()
+	reg.mutex.Lock()
+	defer reg.mutex.Unlock()
 
 	plugin, exists := reg.Plugins[name]
 	return plugin, exists
 }
 
 func (reg *PluginRegistry) GetPlugins() []*PluginInfo {
-	reg.Mutex.Lock()
-	defer reg.Mutex.Unlock()
+	reg.mutex.Lock()
+	defer reg.mutex.Unlock()
 
 	plugins := make([]*PluginInfo, 0, len(reg.Plugins))
 	for _, plugin := range reg.Plugins {

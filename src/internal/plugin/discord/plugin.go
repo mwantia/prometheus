@@ -31,18 +31,13 @@ func (p *DiscordPlugin) Name() (string, error) {
 }
 
 func (p *DiscordPlugin) Setup(s plugin.PluginSetup) error {
-	p.Hub = s.Hub
+	p.Hub = msg.NewMessageHubCacher(s.Hub)
 
 	if err := p.loadConfig(s.Data); err != nil {
 		log.Printf("Error converting mapstructure: %v", err)
 	}
 
-	gp, err := p.Hub.CreateProducer("global")
-	if err != nil {
-		return fmt.Errorf("error creating message hub producer")
-	}
-
-	if err := p.configureDiscordBot(gp); err != nil {
+	if err := p.configureDiscordBot(); err != nil {
 		return err
 	}
 
@@ -60,6 +55,9 @@ func (p *DiscordPlugin) Health() error {
 func (p *DiscordPlugin) Cleanup() error {
 	if err := p.Session.Close(); err != nil {
 		return fmt.Errorf("unable to close discord session: %v", err)
+	}
+	if err := p.Hub.Cleanup(p.Context); err != nil {
+		return fmt.Errorf("unable to cleanup message hub manager: %v", err)
 	}
 
 	return nil
