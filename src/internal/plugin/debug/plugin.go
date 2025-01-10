@@ -29,13 +29,14 @@ func (p *DebugPlugin) Setup(s plugin.PluginSetup) error {
 		log.Printf("Error converting mapstructure: %v", err)
 	}
 
-	if err := s.Hub.Setup(); err != nil {
+	producer, err := s.Hub.CreateProducer("global")
+	if err != nil {
 		log.Printf("Error completing setup for message hub: %v", err)
 	}
 
-	/* if err := s.Hub.WriteMessage("Hello World"); err != nil {
+	if err := producer.Write(p.Context, "Hello World"); err != nil {
 		log.Printf("Error writing message: %v", err)
-	} */
+	}
 	log.Printf("Foo: %s", p.Config.Foo)
 
 	return nil

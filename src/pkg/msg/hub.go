@@ -1,9 +1,7 @@
 package msg
 
 type MessageHub interface {
-	Setup() error
+	CreateProducer(string) (MessageHubProducer, error)
 
-	WriteMessage(string) error
-
-	Cleanup() error
+	CreateConsumer(string) (MessageHubConsumer, error)
 }

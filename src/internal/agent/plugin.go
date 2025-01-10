@@ -7,14 +7,18 @@ import (
 	"os/exec"
 
 	goplugin "github.com/hashicorp/go-plugin"
+	"github.com/mwantia/prometheus/internal/kafka"
 	"github.com/mwantia/prometheus/internal/plugin/debug"
+	"github.com/mwantia/prometheus/internal/plugin/discord"
+	"github.com/mwantia/prometheus/internal/plugin/ollama"
 	"github.com/mwantia/prometheus/internal/registry"
-	"github.com/mwantia/prometheus/pkg/msg"
 	"github.com/mwantia/prometheus/pkg/plugin"
 )
 
 var Plugins = map[string]plugin.Plugin{
-	"debug": debug.NewPlugin(),
+	"debug":   debug.NewPlugin(),
+	"discord": discord.NewPlugin(),
+	"ollama":  ollama.NewPlugin(),
 }
 
 func (a *PrometheusAgent) serveLocalPlugins() error {
@@ -98,52 +102,48 @@ func (a *PrometheusAgent) RunLocalPlugin(path string, arg ...string) error {
 		return err
 	}
 
-	cfg := a.Config.GetPluginConfig(name)
-	if cfg.Enabled {
-		data, err := a.Config.GetPluginConfigMap(name)
-		if err != nil {
-			log.Printf("Unable to load plugin config: %v", err)
+	// cfg := a.Config.GetPluginConfig(name)
+	data, err := a.Config.GetPluginConfigMap(name)
+	if err != nil {
+		log.Printf("Unable to load plugin config: %v", err)
+	}
+
+	log.Printf("Loaded local plugin '%v'", name)
+
+	s := plugin.PluginSetup{
+		Data: data,
+	}
+
+	if a.Config.Agent.Kafka != nil {
+		if s.Hub != nil {
+			return fmt.Errorf("message hub already declared by another config")
 		}
 
-		log.Printf("Loaded local plugin '%v'", name)
-
-		s := plugin.PluginSetup{
-			Data: data,
+		s.Hub = &kafka.KafkaMessageHub{
+			Network:   a.Config.Agent.Kafka.Network,
+			Address:   a.Config.Agent.Kafka.Address,
+			Topic:     a.Config.Agent.Kafka.Topics,
+			Partition: a.Config.Agent.Kafka.Partition,
 		}
+	}
 
-		if a.Config.Agent.Kafka != nil {
-			if s.Hub != nil {
-				return fmt.Errorf("message hub already declared by another config")
-			}
+	if err := driver.Setup(s); err != nil {
+		client.Kill()
+		return err
+	}
 
-			s.Hub = &msg.KafkaMessageHub{
-				Network:   a.Config.Agent.Kafka.Network,
-				Address:   a.Config.Agent.Kafka.Address,
-				Topic:     a.Config.Agent.Kafka.Topics,
-				Partition: a.Config.Agent.Kafka.Partition,
-			}
-		}
+	info := &registry.PluginInfo{
+		Name:         name,
+		Plugin:       driver,
+		Capabilities: cap,
 
-		if err := driver.Setup(s); err != nil {
+		Cleanup: func() error {
 			client.Kill()
-			return err
-		}
-
-		info := &registry.PluginInfo{
-			Name:         name,
-			Plugin:       driver,
-			Capabilities: cap,
-
-			Cleanup: func() error {
-				client.Kill()
-				return nil
-			},
-		}
-		if err := a.Registry.RegisterPlugin(info); err != nil {
-			return err
-		}
-	} else {
-		log.Printf("Plugin '%s' is marked as disabled and will be ignored", name)
+			return nil
+		},
+	}
+	if err := a.Registry.RegisterPlugin(info); err != nil {
+		return err
 	}
 
 	return nil

@@ -68,5 +68,5 @@ func (cfg *Config) GetPluginConfigMap(name string) (map[string]interface{}, erro
 		}
 	}
 
-	return nil, nil
+	return make(map[string]interface{}, 0), nil
 }
