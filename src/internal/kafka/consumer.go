@@ -2,19 +2,22 @@ package kafka
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
+	"log"
 
 	"github.com/mwantia/prometheus/pkg/msg"
 	"github.com/segmentio/kafka-go"
 )
 
 type KafkaMessageHubConsumer struct {
+	uuid   [16]byte
 	topic  string
 	reader *kafka.Reader
 }
 
 func (p KafkaMessageHubConsumer) GetName() string {
-	return p.topic
+	return string(p.uuid[:])
 }
 
 func (p KafkaMessageHubConsumer) Read(ctx context.Context, handler interface{}) error {
@@ -23,13 +26,36 @@ func (p KafkaMessageHubConsumer) Read(ctx context.Context, handler interface{}) 
 		return fmt.Errorf("unable to create handler: %v", handler)
 	}
 
-	for {
-		m, err := p.reader.ReadMessage(ctx)
+	var end bool
+
+	for !end {
+		if ctx.Err() != nil {
+			return ctx.Err()
+		}
+
+		km, err := p.reader.ReadMessage(ctx)
 		if err != nil {
+			log.Printf("Failed to read kafka message: %v", err)
 			break
 		}
 
-		ev.Handle(string(m.Value))
+		var m msg.Message
+		if err := json.Unmarshal(km.Value, &m); err != nil {
+			log.Printf("Failed to unmarschal kafka message: %v", err)
+			continue
+		}
+
+		switch m.Type {
+		case "end":
+			end = true
+		case "msg":
+			switch ev.Type() {
+			case "message":
+				ev.Handle(m)
+			case "content":
+				ev.Handle(m.Content)
+			}
+		}
 	}
 
 	return p.reader.Close()
@@ -38,11 +64,13 @@ func (p KafkaMessageHubConsumer) Read(ctx context.Context, handler interface{}) 
 func handlerForInterface(handler interface{}) msg.EventHandler {
 	switch v := handler.(type) {
 	case func(string):
-		return msg.MessageReadEventHandler(v)
+		return msg.ContentEventHandler(v)
+	case func(msg.Message):
+		return msg.MessageEventHandler(v)
 	}
 	return nil
 }
 
-func (p KafkaMessageHubConsumer) Cleanup(ctx context.Context) error {
+func (p KafkaMessageHubConsumer) Cleanup() error {
 	return nil
 }

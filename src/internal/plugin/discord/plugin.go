@@ -56,7 +56,7 @@ func (p *DiscordPlugin) Cleanup() error {
 	if err := p.Session.Close(); err != nil {
 		return fmt.Errorf("unable to close discord session: %v", err)
 	}
-	if err := p.Hub.Cleanup(p.Context); err != nil {
+	if err := p.Hub.Cleanup(); err != nil {
 		return fmt.Errorf("unable to cleanup message hub manager: %v", err)
 	}
 

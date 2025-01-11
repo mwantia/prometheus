@@ -1,7 +1,6 @@
 package msg
 
 import (
-	"context"
 	"errors"
 	"log"
 	"sync"
@@ -63,7 +62,7 @@ func (m *MessageHubCacher) CreateConsumer(name string) (MessageHubConsumer, erro
 	return consumer, nil
 }
 
-func (m *MessageHubCacher) Cleanup(ctx context.Context) error {
+func (m *MessageHubCacher) Cleanup() error {
 	m.mutex.Lock()
 	defer m.mutex.Unlock()
 
@@ -72,7 +71,7 @@ func (m *MessageHubCacher) Cleanup(ctx context.Context) error {
 	for n, producer := range m.producers {
 		log.Printf("Performing cleanup for producer '%s'...", n)
 
-		if ierr := producer.Cleanup(ctx); ierr != nil {
+		if ierr := producer.Cleanup(); ierr != nil {
 			err = errors.Join(err, ierr)
 		}
 	}
@@ -80,12 +79,12 @@ func (m *MessageHubCacher) Cleanup(ctx context.Context) error {
 	for n, consumer := range m.consumers {
 		log.Printf("Performing cleanup for consumer '%s'...", n)
 
-		if ierr := consumer.Cleanup(ctx); ierr != nil {
+		if ierr := consumer.Cleanup(); ierr != nil {
 			err = errors.Join(err, ierr)
 		}
 	}
 
-	if ierr := m.hub.Cleanup(ctx); ierr != nil {
+	if ierr := m.hub.Cleanup(); ierr != nil {
 		err = errors.Join(err, ierr)
 	}
 

@@ -5,7 +5,7 @@ import "context"
 type MessageHubProducer interface {
 	GetName() string
 
-	Write(context.Context, string) error
+	Write(context.Context, Message) error
 
-	Cleanup(context.Context) error
+	Cleanup() error
 }

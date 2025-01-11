@@ -17,6 +17,11 @@ type KafkaMessageHub struct {
 }
 
 func (k *KafkaMessageHub) CreateProducer(topic string) (msg.MessageHubProducer, error) {
+	uuid, err := msg.GenerateUuid()
+	if err != nil {
+		return nil, err
+	}
+
 	topic = k.combineTopic(topic)
 	conn, err := kafka.DialLeader(context.Background(), k.Network, k.Address, topic, k.Partition)
 	if err != nil {
@@ -30,12 +35,18 @@ func (k *KafkaMessageHub) CreateProducer(topic string) (msg.MessageHubProducer, 
 	})
 
 	return KafkaMessageHubProducer{
+		uuid:  uuid,
 		topic: topic,
 		conn:  conn,
 	}, nil
 }
 
 func (k *KafkaMessageHub) CreateConsumer(topic string) (msg.MessageHubConsumer, error) {
+	uuid, err := msg.GenerateUuid()
+	if err != nil {
+		return nil, err
+	}
+
 	topic = k.combineTopic(topic)
 	reader := kafka.NewReader(kafka.ReaderConfig{
 		Brokers:  []string{k.Address},
@@ -43,17 +54,18 @@ func (k *KafkaMessageHub) CreateConsumer(topic string) (msg.MessageHubConsumer, 
 		MaxBytes: 10e6, // 10MB
 	})
 	return KafkaMessageHubConsumer{
+		uuid:   uuid,
 		topic:  topic,
 		reader: reader,
 	}, nil
 }
 
-func (k *KafkaMessageHub) Cleanup(ctx context.Context) error {
+func (k *KafkaMessageHub) Cleanup() error {
 	return nil
 }
 
 func (k *KafkaMessageHub) combineTopic(topic string) string {
-	return fmt.Sprintf("%s.%s", k.Topic, topic)
+	return fmt.Sprintf("%s_%s", k.Topic, topic)
 }
 
 func init() {

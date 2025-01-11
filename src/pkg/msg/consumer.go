@@ -7,7 +7,7 @@ type MessageHubConsumer interface {
 
 	Read(context.Context, interface{}) error
 
-	Cleanup(context.Context) error
+	Cleanup() error
 }
 
 type EventHandler interface {
@@ -16,14 +16,26 @@ type EventHandler interface {
 	Handle(interface{})
 }
 
-type MessageReadEventHandler func(string)
+type ContentEventHandler func(string)
 
-func (ev MessageReadEventHandler) Type() string {
-	return "string"
+func (ev ContentEventHandler) Type() string {
+	return "content"
 }
 
-func (ev MessageReadEventHandler) Handle(i interface{}) {
+func (ev ContentEventHandler) Handle(i interface{}) {
 	if t, ok := i.(string); ok {
+		ev(t)
+	}
+}
+
+type MessageEventHandler func(Message)
+
+func (ev MessageEventHandler) Type() string {
+	return "message"
+}
+
+func (ev MessageEventHandler) Handle(i interface{}) {
+	if t, ok := i.(Message); ok {
 		ev(t)
 	}
 }

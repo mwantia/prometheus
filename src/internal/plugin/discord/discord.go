@@ -2,8 +2,10 @@ package discord
 
 import (
 	"log"
+	"time"
 
 	"github.com/bwmarrin/discordgo"
+	"github.com/mwantia/prometheus/pkg/msg"
 )
 
 func (p *DiscordPlugin) configureDiscordBot() error {
@@ -41,7 +43,7 @@ func (p *DiscordPlugin) handleMessageCreate() interface{} {
 				log.Printf("Unable to create 'conversations.<ChannelID>': %v", err)
 			}
 
-			if err := p.sendConversationCreateMessage(m.ChannelID); err != nil {
+			if err := p.sendConversationCreateMessage(m.ID, channel); err != nil {
 				log.Printf("Unable to write to 'conversations.create': %v", err)
 			}
 
@@ -52,13 +54,19 @@ func (p *DiscordPlugin) handleMessageCreate() interface{} {
 	}
 }
 
-func (p *DiscordPlugin) sendConversationCreateMessage(channel string) error {
+func (p *DiscordPlugin) sendConversationCreateMessage(id string, c *discordgo.Channel) error {
 	producer, err := p.Hub.CreateProducer("conversations.create")
 	if err != nil {
 		return err
 	}
 
-	return producer.Write(p.Context, channel)
+	return producer.Write(p.Context, msg.Message{
+		ID:        id,
+		Content:   c.ID,
+		Type:      "msg",
+		Sequence:  0,
+		Timestamp: time.Now(),
+	})
 }
 
 func (p *DiscordPlugin) handleMessageRespond(s *discordgo.Session, c *discordgo.Channel) interface{} {
