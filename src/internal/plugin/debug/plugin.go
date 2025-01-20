@@ -1,35 +1,57 @@
 package debug
 
 import (
-	"context"
-	"log"
-
 	"github.com/mwantia/prometheus/pkg/plugin"
+	"github.com/mwantia/prometheus/pkg/plugin/identity"
+	"github.com/mwantia/prometheus/pkg/plugin/tools"
 )
 
-type DebugPlugin struct {
-	plugin.DefaultPlugin
-
-	Context context.Context
-	Config  *DebugConfig
+type DebugIdentityService struct {
+	identity.DefaultUnimplementedService
 }
 
-func NewPlugin() *DebugPlugin {
-	return &DebugPlugin{
-		Context: context.Background(),
-	}
+type GetDebugTool struct {
+	tools.DefaultUnimplementedService
 }
 
-func (p *DebugPlugin) Name() (string, error) {
-	return "debug", nil
+const DebugToolName = "debug"
+
+func Serve() error {
+	return plugin.ServeTools(&DebugIdentityService{}, []tools.ToolService{
+		&GetDebugTool{},
+	})
 }
 
-func (p *DebugPlugin) Setup(s plugin.PluginSetup) error {
-	if err := p.loadConfig(s.Data); err != nil {
-		log.Printf("Error converting mapstructure: %v", err)
-	}
+func (p *DebugIdentityService) GetPluginInfo() (*identity.PluginInfo, error) {
+	return &identity.PluginInfo{
+		Name:    DebugToolName,
+		Version: "0.0.1",
+		Author:  "mwantia",
+		Services: []identity.PluginServiceInfo{
+			{
+				Name:        DebugToolName,
+				Type:        identity.ToolServiceType,
+				Description: "Tool used to receive and display the current debug information",
+			},
+		},
+	}, nil
+}
 
-	log.Printf("Foo: %s", p.Config.Foo)
+func (t *GetDebugTool) GetName() (string, error) {
+	return DebugToolName, nil
+}
 
+func (t *GetDebugTool) GetParameters() (*tools.ToolParameters, error) {
+	return &tools.ToolParameters{
+		ReturnType:  "string",
+		Description: "Returns a list of all available debug informations.",
+	}, nil
+}
+
+func (t *GetDebugTool) Handle(ctx *tools.ToolContext) error {
+	return nil
+}
+
+func (t *GetDebugTool) Probe() error {
 	return nil
 }
