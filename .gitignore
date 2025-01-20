@@ -14,7 +14,11 @@ tests/
 
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
+tmp/
 build/
+
+# VSCode extension: VS Code Counter
+.VSCodeCounter/
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
