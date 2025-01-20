@@ -1,4 +1,4 @@
-package configs
+package config
 
 import (
 	"errors"
@@ -11,7 +11,7 @@ import (
 )
 
 func ParseConfig(path string) (*Config, error) {
-	config := CreateDefaultConfig()
+	config := CreateDefault()
 	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
 		return config, nil
 	}

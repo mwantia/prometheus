@@ -6,7 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mwantia/prometheus/pkg/plugin"
+	"github.com/mwantia/prometheus/pkg/plugin/cache"
+	"github.com/mwantia/prometheus/pkg/plugin/identity"
 )
 
 type PluginRegistry struct {
@@ -15,13 +16,17 @@ type PluginRegistry struct {
 }
 
 type PluginInfo struct {
-	Name           string                    `json:"name"`
-	LastSeen       time.Time                 `json:"last_seen"`
-	LastKnownError error                     `json:"-"`
-	IsHealthy      bool                      `json:"is_healthy"`
-	Capabilities   plugin.PluginCapabilities `json:"capabilities"`
-	Plugin         plugin.Plugin             `json:"-"`
-	Cleanup        PluginCleanup             `json:"-"`
+	Name           string                       `json:"name"`
+	Version        string                       `json:"version"`
+	Author         string                       `json:"author,omitempty"`
+	Metadata       map[string]string            `json:"metadata,omitempty"`
+	LastSeen       time.Time                    `json:"last_seen"`
+	LastKnownError error                        `json:"-"`
+	IsHealthy      bool                         `json:"is_healthy"`
+	Services       []identity.PluginServiceInfo `json:"services"`
+	Identity       identity.IdentityService     `json:"-"`
+	Cache          cache.CacheService           `json:"-"`
+	Cleanup        PluginCleanup                `json:"-"`
 }
 
 type PluginCleanup func() error
@@ -39,12 +44,12 @@ func (r *PluginRegistry) Watch(ctx context.Context) {
 	for {
 		plugins := r.GetPlugins()
 		for _, plugin := range plugins {
-			if err := plugin.Plugin.Health(); err != nil {
+			/* if err := plugin.Identity.Probe(); err != nil {
 				plugin.IsHealthy = false
 				plugin.LastKnownError = err
 
 				continue
-			}
+			} */
 
 			plugin.IsHealthy = true
 			plugin.LastKnownError = nil

@@ -7,29 +7,31 @@ import (
 	"os/exec"
 
 	goplugin "github.com/hashicorp/go-plugin"
-	"github.com/mwantia/prometheus/internal/kafka"
 	"github.com/mwantia/prometheus/internal/plugin/debug"
-	"github.com/mwantia/prometheus/internal/plugin/discord"
-	"github.com/mwantia/prometheus/internal/plugin/ollama"
 	"github.com/mwantia/prometheus/internal/registry"
 	"github.com/mwantia/prometheus/pkg/plugin"
+	"github.com/mwantia/prometheus/pkg/plugin/cache"
+	"github.com/mwantia/prometheus/pkg/plugin/identity"
+	"github.com/mwantia/prometheus/pkg/plugin/tools"
 )
 
-var Plugins = map[string]plugin.Plugin{
-	"debug":   debug.NewPlugin(),
-	"discord": discord.NewPlugin(),
-	"ollama":  ollama.NewPlugin(),
+var Plugins = map[string]PluginServe{
+	"debug": func() error {
+		return debug.Serve()
+	},
 }
 
+type PluginServe func() error
+
 func (a *PrometheusAgent) serveLocalPlugins() error {
-	files, err := os.ReadDir(a.Config.Agent.PluginDir)
+	files, err := os.ReadDir(a.Config.PluginDir)
 	if err != nil {
-		return fmt.Errorf("unable to read directory '%s': %v", a.Config.Agent.PluginDir, err)
+		return fmt.Errorf("unable to read directory '%s': %v", a.Config.PluginDir, err)
 	}
 
 	for _, file := range files {
 		if !file.IsDir() {
-			path := fmt.Sprintf("%s/%s", a.Config.Agent.PluginDir, file.Name())
+			path := fmt.Sprintf("%s/%s", a.Config.PluginDir, file.Name())
 			if err := a.RunLocalPlugin(path); err != nil {
 				log.Printf("Unable to load local plugin: %v", err)
 			}
@@ -40,7 +42,7 @@ func (a *PrometheusAgent) serveLocalPlugins() error {
 }
 
 func (a *PrometheusAgent) serveEmbedPlugins() error {
-	for _, name := range a.Config.Agent.EmbedPlugins {
+	for _, name := range a.Config.EmbedPlugins {
 		p, exists := Plugins[name]
 		if exists && p != nil {
 			err := a.RunEmbedPlugin(name)
@@ -72,79 +74,116 @@ func (a *PrometheusAgent) RunLocalPlugin(path string, arg ...string) error {
 	a.Mutex.Lock()
 	defer a.Mutex.Unlock()
 
+	log.Printf("Run local plugin '%s' with args: %v", path, arg)
+
 	client := goplugin.NewClient(&goplugin.ClientConfig{
 		HandshakeConfig: plugin.Handshake,
-		Plugins:         plugin.Plugins,
+		Plugins:         plugin.PluginMap,
 		Cmd:             exec.Command(path, arg...),
 	})
 
 	rpc, err := client.Client()
 	if err != nil {
 		client.Kill()
-		return err
+		return fmt.Errorf("failed to create rpc-client: %w", err)
 	}
 
-	raw, err := rpc.Dispense("driver")
+	raw, err := rpc.Dispense("identity")
 	if err != nil {
 		client.Kill()
-		return err
+		return fmt.Errorf("failed to dispense 'identity' from plugin: %w", err)
 	}
 
-	driver := raw.(plugin.Plugin)
-
-	name, err := driver.Name()
+	ident := raw.(identity.IdentityService)
+	info, err := ident.GetPluginInfo()
 	if err != nil {
-		return err
+		client.Kill()
+		return fmt.Errorf("failed to get plugin info: %w", err)
 	}
 
-	cap, err := driver.GetCapabilities()
-	if err != nil {
-		return err
-	}
-
-	// cfg := a.Config.GetPluginConfig(name)
-	data, err := a.Config.GetPluginConfigMap(name)
+	data, err := a.Config.GetPluginConfigMap(info.Name)
 	if err != nil {
 		log.Printf("Unable to load plugin config: %v", err)
 	}
 
-	log.Printf("Loaded local plugin '%v'", name)
+	log.Printf("Data: %v", data)
 
-	s := plugin.PluginSetup{
+	for index, svr := range info.Services {
+		switch svr.Type {
+		case identity.ToolServiceType:
+			key := fmt.Sprintf("tool.%v", index)
+			raw, err := rpc.Dispense(key)
+			if err != nil {
+				return fmt.Errorf("failed to dispense service: %w", err)
+			}
+
+			service, success := raw.(tools.ToolService)
+			if !success {
+				return fmt.Errorf("failed to cast service")
+			}
+
+			params, err := service.GetParameters()
+			if err != nil {
+				return fmt.Errorf("error getting parameters: %w", err)
+			}
+
+			log.Printf("Name: %s", svr.Name)
+			log.Printf("Description: %s", svr.Description)
+			log.Printf("Return Type: %s", params.ReturnType)
+			for _, property := range params.Properties {
+				log.Printf("Property Name: %s", property.Name)
+				log.Printf("Property Description: %s", property.Description)
+				log.Printf("Property Type: %s", property.Type)
+				log.Printf("Property Enums: %v", property.Enum)
+				log.Printf("Property Required: %v", property.Required)
+			}
+
+		case identity.CacheServiceType:
+			raw, err := rpc.Dispense("_cache")
+			if err != nil {
+				return fmt.Errorf("failed to dispense service: %w", err)
+			}
+
+			service, success := raw.(cache.CacheService)
+			if !success {
+				return fmt.Errorf("failed to cast service")
+			}
+
+			service.SetCache(&cache.SetCacheRequest{
+				Key:   "foo",
+				Value: []byte("bar"),
+			})
+
+			i := &registry.PluginInfo{
+				Name:     info.Name,
+				Version:  info.Version,
+				Author:   info.Author,
+				Metadata: info.Metadata,
+				Services: info.Services,
+
+				Identity: ident,
+				Cache:    service,
+
+				Cleanup: func() error {
+					client.Kill()
+					return nil
+				},
+			}
+
+			if err := a.Registry.RegisterPlugin(i); err != nil {
+				return fmt.Errorf("failed to register plugin: %w", err)
+			}
+		}
+	}
+
+	log.Printf("Loaded local plugin '%v'", info.Name)
+
+	/*if err := driver.Setup(plugin.PluginSetup{
 		Data: data,
-	}
-
-	if a.Config.Agent.Kafka != nil {
-		if s.Hub != nil {
-			return fmt.Errorf("message hub already declared by another config")
-		}
-
-		s.Hub = &kafka.KafkaMessageHub{
-			Network:   a.Config.Agent.Kafka.Network,
-			Address:   a.Config.Agent.Kafka.Address,
-			Topic:     a.Config.Agent.Kafka.Topics,
-			Partition: a.Config.Agent.Kafka.Partition,
-		}
-	}
-
-	if err := driver.Setup(s); err != nil {
+	}); err != nil {
 		client.Kill()
 		return err
-	}
-
-	info := &registry.PluginInfo{
-		Name:         name,
-		Plugin:       driver,
-		Capabilities: cap,
-
-		Cleanup: func() error {
-			client.Kill()
-			return nil
-		},
-	}
-	if err := a.Registry.RegisterPlugin(info); err != nil {
-		return err
-	}
+	}*/
 
 	return nil
 }

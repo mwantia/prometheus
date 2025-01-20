@@ -3,24 +3,25 @@ package agent
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"sync"
 	"time"
 
-	"github.com/mwantia/prometheus/internal/configs"
+	"github.com/mwantia/prometheus/internal/agent/ops"
+	"github.com/mwantia/prometheus/internal/config"
 	"github.com/mwantia/prometheus/internal/registry"
 )
 
 type PrometheusAgent struct {
 	Mutex    sync.RWMutex
 	Registry *registry.PluginRegistry
-	Config   *configs.Config
+	Config   *config.Config
 }
 
-func CreateNewAgent(c *configs.Config) *PrometheusAgent {
+func CreateNewAgent(c *config.Config) *PrometheusAgent {
 	return &PrometheusAgent{
 		Registry: registry.NewRegistry(),
 		Config:   c,
@@ -28,6 +29,12 @@ func CreateNewAgent(c *configs.Config) *PrometheusAgent {
 }
 
 func (a *PrometheusAgent) Serve(ctx context.Context) error {
+	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
+	defer cancel()
+
+	var wg sync.WaitGroup
+	cleanups := []func() error{}
+
 	if err := a.serveLocalPlugins(); err != nil {
 		log.Printf("Unable to serve local plugin: %v", err)
 	}
@@ -36,40 +43,68 @@ func (a *PrometheusAgent) Serve(ctx context.Context) error {
 		log.Printf("Unable to serve embed plugin: %v", err)
 	}
 
-	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
-	defer cancel()
+	if a.Config.Server.Enabled {
+		wg.Add(1)
 
-	srv, err := a.startServer()
-	if err != nil {
-		return err
+		srv := ops.Server{}
+		cleanup, err := srv.Create(a.Config, a.Registry)
+		if err != nil {
+			return fmt.Errorf("failed to create server: %w", err)
+		}
+
+		cleanups = append(cleanups, func() error {
+			shutdown, cncl := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cncl()
+
+			return cleanup(shutdown)
+		})
+
+		go func() {
+			defer wg.Done()
+
+			log.Println("Starting server...")
+			if err := srv.Serve(ctx); err != nil {
+				log.Fatalf("Error serving server: %v", err)
+			}
+		}()
+	}
+
+	if a.Config.Client.Enabled {
+		wg.Add(1)
+
+		client := ops.Client{}
+		cleanup, err := client.Create(a.Config, a.Registry)
+		if err != nil {
+			return fmt.Errorf("failed to create client: %w", err)
+		}
+
+		cleanups = append(cleanups, func() error {
+			shutdown, cncl := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cncl()
+
+			return cleanup(shutdown)
+		})
+
+		go func() {
+			defer wg.Done()
+
+			log.Println("Starting client...")
+			if err := client.Serve(ctx); err != nil {
+				log.Fatalf("Error serving client: %v", err)
+			}
+		}()
 	}
 
 	go a.Registry.Watch(ctx)
 
-	go func() {
-		log.Printf("Serving HTTP server: %s", a.Config.Agent.Server.Address)
-		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			log.Fatalf("Error serving http server: %v", err)
+	<-ctx.Done()
+	log.Println("Shutting down agent...")
+
+	for _, cleanup := range cleanups {
+		if err := cleanup(); err != nil {
+			log.Printf("Error during cleanup: %v", err)
 		}
-	}()
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-
-	go func() {
-		defer wg.Done()
-		<-ctx.Done()
-
-		log.Println("Shutting down agent...")
-
-		shutdown := context.Background()
-		shutdown, cncl := context.WithTimeout(shutdown, 10*time.Second)
-		defer cncl()
-
-		if err := srv.Shutdown(shutdown); err != nil {
-			log.Fatalf("Error shutting down http server: %v", err)
-		}
-	}()
+	}
 
 	wg.Wait()
 	return a.Cleanup()
@@ -82,11 +117,6 @@ func (a *PrometheusAgent) Cleanup() error {
 	var err error
 
 	for _, plugin := range a.Registry.GetPlugins() {
-		if shutdownErr := plugin.Plugin.Cleanup(); shutdownErr != nil {
-			log.Printf("Error while performing cleanup for plugin '%s'", plugin.Name)
-			err = errors.Join(err, shutdownErr)
-		}
-
 		if cleanupErr := plugin.Cleanup(); cleanupErr != nil {
 			log.Printf("Error while performing cleanup for plugin '%s'", plugin.Name)
 			err = errors.Join(err, cleanupErr)

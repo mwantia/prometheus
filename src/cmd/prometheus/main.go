@@ -7,8 +7,7 @@ import (
 	"strings"
 
 	"github.com/mwantia/prometheus/internal/agent"
-	"github.com/mwantia/prometheus/internal/configs"
-	"github.com/mwantia/prometheus/pkg/plugin"
+	"github.com/mwantia/prometheus/internal/config"
 	"github.com/spf13/cobra"
 )
 
@@ -17,14 +16,14 @@ var (
 	NoColorFlag bool
 )
 
-var Config *configs.Config
+var Config *config.Config
 
 var (
 	Root = &cobra.Command{
 		Use:   "prometheus",
 		Short: "Prometheus document processing system",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
-			cfg, err := configs.ParseConfig(ConfigFlag)
+			cfg, err := config.ParseConfig(ConfigFlag)
 			if err != nil {
 				return fmt.Errorf("unable to complete config: %v", err)
 			}
@@ -57,9 +56,9 @@ var (
 
 			name := strings.TrimSpace(args[0])
 
-			p, exists := agent.Plugins[name]
-			if exists && p != nil {
-				return plugin.ServePlugin(p)
+			plugin, exists := agent.Plugins[name]
+			if exists && plugin != nil {
+				return plugin()
 			}
 
 			return fmt.Errorf("unknown plugin: %s", args[0])
