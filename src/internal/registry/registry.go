@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mwantia/prometheus/pkg/plugin/cache"
 	"github.com/mwantia/prometheus/pkg/plugin/identity"
+	"github.com/mwantia/prometheus/pkg/plugin/tools"
 )
 
 type PluginRegistry struct {
@@ -16,17 +16,22 @@ type PluginRegistry struct {
 }
 
 type PluginInfo struct {
-	Name           string                       `json:"name"`
-	Version        string                       `json:"version"`
-	Author         string                       `json:"author,omitempty"`
-	Metadata       map[string]string            `json:"metadata,omitempty"`
-	LastSeen       time.Time                    `json:"last_seen"`
-	LastKnownError error                        `json:"-"`
-	IsHealthy      bool                         `json:"is_healthy"`
-	Services       []identity.PluginServiceInfo `json:"services"`
-	Identity       identity.IdentityService     `json:"-"`
-	Cache          cache.CacheService           `json:"-"`
-	Cleanup        PluginCleanup                `json:"-"`
+	Name     string            `json:"name"`
+	Version  string            `json:"version"`
+	Author   string            `json:"author,omitempty"`
+	Metadata map[string]string `json:"metadata,omitempty"`
+
+	LastSeen       time.Time `json:"last_seen"`
+	LastKnownError error     `json:"-"`
+	IsHealthy      bool      `json:"is_healthy"`
+
+	Services PluginServices `json:"-"`
+	Cleanup  PluginCleanup  `json:"-"`
+}
+
+type PluginServices struct {
+	Identity identity.IdentityService `json:"-"`
+	Tools    []tools.ToolService      `json:"-"`
 }
 
 type PluginCleanup func() error
@@ -44,16 +49,23 @@ func (r *PluginRegistry) Watch(ctx context.Context) {
 	for {
 		plugins := r.GetPlugins()
 		for _, plugin := range plugins {
-			/* if err := plugin.Identity.Probe(); err != nil {
-				plugin.IsHealthy = false
-				plugin.LastKnownError = err
-
-				continue
-			} */
-
 			plugin.IsHealthy = true
-			plugin.LastKnownError = nil
-			plugin.LastSeen = time.Now()
+			//
+			for _, tool := range plugin.Services.Tools {
+				if err := tool.Probe(); err != nil {
+					name, _ := tool.GetName()
+
+					plugin.IsHealthy = false
+					plugin.LastKnownError = fmt.Errorf("error probing tool '%s': %w", name, err)
+
+					continue
+				}
+			}
+
+			if plugin.IsHealthy {
+				plugin.LastKnownError = nil
+				plugin.LastSeen = time.Now()
+			}
 		}
 
 		select {

@@ -11,10 +11,6 @@ import (
 	"github.com/mwantia/prometheus/pkg/tasks"
 )
 
-type ErrorResponse struct {
-	Error string `json:"error,omitempty"`
-}
-
 type GeneratePromptRequest struct {
 	Prompt string `json:"prompt"`
 	Model  string `json:"model,omitempty"`
@@ -81,14 +77,19 @@ func HandleQueuePost(w http.ResponseWriter, r *http.Request, address string, db 
 	})
 	defer client.Close()
 
-	task, err := tasks.CreateGeneratePromptTask(request.Prompt, request.Model)
+	prompt, err := json.Marshal(tasks.GeneratePrompt{
+		Content: request.Prompt,
+		Model:   request.Model,
+	})
 	if err != nil {
 		w.WriteHeader(http.StatusServiceUnavailable)
 		fmt.Fprintf(w, "Unable to create task: %v", err)
 		return
 	}
 
+	task := asynq.NewTask(tasks.TaskTypeGeneratePrompt, prompt)
 	taskid := fmt.Sprintf("T%d", time.Now().UnixNano())
+
 	log.Printf("Task: %s", taskid)
 
 	info, err := client.EnqueueContext(r.Context(), task, asynq.TaskID(taskid), asynq.Retention(7*24*time.Hour))

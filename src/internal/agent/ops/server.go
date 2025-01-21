@@ -45,7 +45,8 @@ func (s *Server) Serve(ctx context.Context) error {
 
 func (s *Server) addRoutes(cfg *config.Config, reg *registry.PluginRegistry) error {
 	s.mux.HandleFunc("/v1/health", api.HandleHealth(reg))
-	s.mux.HandleFunc("/v1/plugins/list", api.HandleListPlugins(reg))
+	s.mux.HandleFunc("/v1/plugins", api.HandlePlugins(reg))
+	s.mux.HandleFunc("/v1/services", api.HandleServices(reg))
 	s.mux.HandleFunc("/v1/queue", api.HandleQueue(cfg.Redis.Address, cfg.Redis.Database))
 
 	s.mux.Handle("/", http.NotFoundHandler())

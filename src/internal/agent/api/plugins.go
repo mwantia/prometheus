@@ -7,7 +7,7 @@ import (
 	"github.com/mwantia/prometheus/internal/registry"
 )
 
-func HandleListPlugins(reg *registry.PluginRegistry) http.HandlerFunc {
+func HandlePlugins(reg *registry.PluginRegistry) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "application/json")
 
@@ -16,7 +16,5 @@ func HandleListPlugins(reg *registry.PluginRegistry) http.HandlerFunc {
 
 		plugins := reg.GetPlugins()
 		encoder.Encode(plugins)
-
-		w.WriteHeader(http.StatusOK)
 	}
 }
