@@ -27,7 +27,7 @@ func (rc *RpcClient) GetParameters() (*ToolParameters, error) {
 	return resp, nil
 }
 
-func (rc *RpcClient) Handle(ctx ToolContext) error {
+func (rc *RpcClient) Handle(ctx *ToolContext) error {
 	var resp error
 	if err := rc.client.Call("Plugin.Handle", struct{}{}, &resp); err != nil {
 		return fmt.Errorf("error performing client call: %w", err)

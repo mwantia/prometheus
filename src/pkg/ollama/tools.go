@@ -5,10 +5,8 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"log"
 	"net/http"
 	"text/template"
-	"time"
 )
 
 type Tool struct {
@@ -38,6 +36,8 @@ type ToolCall struct {
 	Function ToolCallFunction `json:"function"`
 }
 
+type ToolCallHandler func(ToolCall) (string, error)
+
 type ToolCallFunction struct {
 	Index     int            `json:"index,omitempty"`
 	Name      string         `json:"name"`
@@ -46,15 +46,6 @@ type ToolCallFunction struct {
 
 const ToolSystemPrompt = `You are a helpful assistant with tool calling capabilities.
 When you receive a tool call response, use the output to format an answer to the orginal user question.`
-
-func (tc *ToolCall) Debug() {
-	log.Println("----- Tool Call Function -----")
-	log.Printf("Name: %s", tc.Function.Name)
-	for k, v := range tc.Function.Arguments {
-		log.Printf("Argument '%s': %v", k, v)
-	}
-	log.Println("------------------------------")
-}
 
 func (c *Client) updateSystemTool(req *ChatRequest, data any) error {
 	tmpl, err := template.New("system_tool").Parse(ToolSystemPrompt)
@@ -75,7 +66,7 @@ func (c *Client) updateSystemTool(req *ChatRequest, data any) error {
 	return nil
 }
 
-func (c *Client) ChatTools(ctx context.Context, req ChatRequest, res ChatResponseHandler, tools []Tool) error {
+func (c *Client) ChatTools(ctx context.Context, req ChatRequest, resHandler ChatResponseHandler, toolHandler ToolCallHandler, tools []Tool) error {
 	if err := c.stream(ctx, http.MethodPost, "/api/chat", struct {
 		Tools []Tool `json:"tools,omitempty"`
 		ChatRequest
@@ -95,22 +86,25 @@ func (c *Client) ChatTools(ctx context.Context, req ChatRequest, res ChatRespons
 			}
 			// Add our new message, including the result as content
 			for _, toolcall := range resp.Message.ToolCalls {
-				if toolcall.Function.Name == "get_current_time" {
-					tz := toolcall.Function.Arguments["timezone"]
-					location, _ := time.LoadLocation(tz.(string))
-
+				content, err := toolHandler(toolcall)
+				if err != nil {
 					req.Messages = append(req.Messages, ChatMessage{
 						Role:    "tool",
-						Content: time.Now().In(location).Format("Mon Jan 2 15:04:05"),
+						Content: err.Error(),
+					})
+				} else {
+					req.Messages = append(req.Messages, ChatMessage{
+						Role:    "tool",
+						Content: content,
 					})
 				}
 			}
 
-			return c.Chat(ctx, req, res)
+			return c.Chat(ctx, req, resHandler)
 		}
 		// Only bypass tool response, if we receive an uncommon reply with content
 		if resp.Message.Content != "" {
-			return res(resp)
+			return resHandler(resp)
 		}
 
 		return nil

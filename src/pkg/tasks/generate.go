@@ -7,9 +7,11 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/hibiken/asynq"
 	"github.com/mwantia/prometheus/internal/config"
+	"github.com/mwantia/prometheus/internal/registry"
 	"github.com/mwantia/prometheus/pkg/ollama"
 )
 
@@ -21,18 +23,34 @@ type GeneratePrompt struct {
 	Style   string `json:"style,omitempty"`
 }
 
-func HandleGeneratePromptTask(cfg *config.Config) func(context.Context, *asynq.Task) error {
-	return func(ctx context.Context, t *asynq.Task) error {
-		client := ollama.CreateClient(cfg.Ollama.Address, http.DefaultClient)
+func CreateGeneratePromptTask(cfg *config.Config, reg *registry.PluginRegistry) func(context.Context, *asynq.Task) error {
+	client := ollama.CreateClient(cfg.Ollama.Address, http.DefaultClient)
+	tools := createTools()
 
-		tools := createTools()
+	plugins := reg.GetPlugins()
+	for _, plugin := range plugins {
+		info, err := plugin.Services.Identity.GetPluginInfo()
+		if err != nil {
+			log.Printf("Unable to load plugin info for '%s'", plugin.Name)
+		}
+
+		for _, service := range info.Services {
+			log.Printf("Name: %s", service.Name)
+		}
+	}
+
+	return handleGeneratePromptTask(client, tools, cfg.Ollama.Model)
+}
+
+func handleGeneratePromptTask(client *ollama.Client, tools []ollama.Tool, model string) func(context.Context, *asynq.Task) error {
+	return func(ctx context.Context, t *asynq.Task) error {
 		var prompt GeneratePrompt
 		if err := json.Unmarshal(t.Payload(), &prompt); err != nil {
 			return fmt.Errorf("failed to unmarshal payload: %w", err)
 		}
 
 		if prompt.Model == "" {
-			prompt.Model = cfg.Ollama.Model
+			prompt.Model = model
 		}
 
 		log.Printf("Handling prompt: %s", prompt.Content)
@@ -47,10 +65,25 @@ func HandleGeneratePromptTask(cfg *config.Config) func(context.Context, *asynq.T
 		}
 
 		var text strings.Builder
-		if err := client.ChatTools(ctx, req, func(resp ollama.ChatResponse) error {
-			text.WriteString(resp.Message.Content)
+		rHandler := func(r ollama.ChatResponse) error {
+			text.WriteString(r.Message.Content)
 			return nil
-		}, tools); err != nil {
+		}
+		tHandler := func(tc ollama.ToolCall) (string, error) {
+			log.Printf("Handling tool call: %s", tc.Function.Name)
+
+			switch tc.Function.Name {
+			case "get_current_time":
+				tz := tc.Function.Arguments["timezone"]
+				loc, _ := time.LoadLocation(tz.(string))
+
+				return time.Now().In(loc).Format("Mon Jan 2 15:04:05"), nil
+			}
+
+			return "", fmt.Errorf("no tool with the function name '%s' found", tc.Function.Name)
+		}
+
+		if err := client.ChatTools(ctx, req, rHandler, tHandler, tools); err != nil {
 			return fmt.Errorf("failed chat tools: %w", err)
 		}
 
@@ -60,39 +93,5 @@ func HandleGeneratePromptTask(cfg *config.Config) func(context.Context, *asynq.T
 		}
 
 		return nil
-	}
-}
-
-func CreateGeneratePromptTask(content, model string) (*asynq.Task, error) {
-	prompt, err := json.Marshal(GeneratePrompt{
-		Content: content,
-		Model:   model,
-	})
-	if err != nil {
-		return nil, err
-	}
-
-	return asynq.NewTask(TaskTypeGeneratePrompt, prompt), nil
-}
-
-func createTools() []ollama.Tool {
-	return []ollama.Tool{
-		{
-			Type: "function",
-			Function: ollama.ToolFunction{
-				Name:        "get_current_time",
-				Description: "Get the current time in the specified timezone",
-				Parameters: ollama.ToolFunctionParameter{
-					Type:     "string",
-					Required: []string{"timezone"},
-					Properties: map[string]ollama.ToolFunctionProperty{
-						"timezone": {
-							Type:        "string",
-							Description: "The timezone to use. Must be a IANA Time Zone",
-						},
-					},
-				},
-			},
-		},
 	}
 }

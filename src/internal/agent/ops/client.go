@@ -30,7 +30,7 @@ func (c *Client) Create(cfg *config.Config, reg *registry.PluginRegistry) (Clean
 		},
 	})
 
-	c.mux.HandleFunc(tasks.TaskTypeGeneratePrompt, tasks.HandleGeneratePromptTask(cfg))
+	c.mux.HandleFunc(tasks.TaskTypeGeneratePrompt, tasks.CreateGeneratePromptTask(cfg, reg))
 
 	return func(ctx context.Context) error {
 		c.srv.Shutdown()
