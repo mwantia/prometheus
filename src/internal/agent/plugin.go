@@ -7,7 +7,7 @@ import (
 	"os/exec"
 
 	goplugin "github.com/hashicorp/go-plugin"
-	"github.com/mwantia/prometheus/internal/plugin/debug"
+	"github.com/mwantia/prometheus/internal/plugin/essentials"
 	"github.com/mwantia/prometheus/internal/registry"
 	"github.com/mwantia/prometheus/pkg/plugin"
 	"github.com/mwantia/prometheus/pkg/plugin/cache"
@@ -16,8 +16,8 @@ import (
 )
 
 var Plugins = map[string]PluginServe{
-	"debug": func() error {
-		return debug.Serve()
+	"essentials": func() error {
+		return essentials.Serve()
 	},
 }
 
@@ -101,12 +101,25 @@ func (a *PrometheusAgent) RunLocalPlugin(path string, arg ...string) error {
 		return fmt.Errorf("failed to get plugin info: %w", err)
 	}
 
-	data, err := a.Config.GetPluginConfigMap(info.Name)
+	/* data, err := a.Config.GetPluginConfigMap(info.Name)
 	if err != nil {
 		log.Printf("Unable to load plugin config: %v", err)
-	}
+	} */
 
-	log.Printf("Data: %v", data)
+	i := &registry.PluginInfo{
+		Name:     info.Name,
+		Version:  info.Version,
+		Author:   info.Author,
+		Metadata: info.Metadata,
+
+		Services: registry.PluginServices{
+			Identity: ident,
+		},
+		Cleanup: func() error {
+			client.Kill()
+			return nil
+		},
+	}
 
 	for index, svr := range info.Services {
 		switch svr.Type {
@@ -122,24 +135,10 @@ func (a *PrometheusAgent) RunLocalPlugin(path string, arg ...string) error {
 				return fmt.Errorf("failed to cast service")
 			}
 
-			params, err := service.GetParameters()
-			if err != nil {
-				return fmt.Errorf("error getting parameters: %w", err)
-			}
-
-			log.Printf("Name: %s", svr.Name)
-			log.Printf("Description: %s", svr.Description)
-			log.Printf("Return Type: %s", params.ReturnType)
-			for _, property := range params.Properties {
-				log.Printf("Property Name: %s", property.Name)
-				log.Printf("Property Description: %s", property.Description)
-				log.Printf("Property Type: %s", property.Type)
-				log.Printf("Property Enums: %v", property.Enum)
-				log.Printf("Property Required: %v", property.Required)
-			}
+			i.Services.Tools = append(i.Services.Tools, service)
 
 		case identity.CacheServiceType:
-			raw, err := rpc.Dispense("_cache")
+			raw, err := rpc.Dispense("cache")
 			if err != nil {
 				return fmt.Errorf("failed to dispense service: %w", err)
 			}
@@ -153,27 +152,11 @@ func (a *PrometheusAgent) RunLocalPlugin(path string, arg ...string) error {
 				Key:   "foo",
 				Value: []byte("bar"),
 			})
-
-			i := &registry.PluginInfo{
-				Name:     info.Name,
-				Version:  info.Version,
-				Author:   info.Author,
-				Metadata: info.Metadata,
-				Services: info.Services,
-
-				Identity: ident,
-				Cache:    service,
-
-				Cleanup: func() error {
-					client.Kill()
-					return nil
-				},
-			}
-
-			if err := a.Registry.RegisterPlugin(i); err != nil {
-				return fmt.Errorf("failed to register plugin: %w", err)
-			}
 		}
+	}
+
+	if err := a.Registry.RegisterPlugin(i); err != nil {
+		return fmt.Errorf("failed to register plugin: %w", err)
 	}
 
 	log.Printf("Loaded local plugin '%v'", info.Name)
