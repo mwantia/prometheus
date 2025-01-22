@@ -24,16 +24,8 @@ type GeneratePromptResponse struct {
 }
 
 func HandleQueueGet(w http.ResponseWriter, r *http.Request, address string, db int) {
-	taskid := r.URL.Query().Get("taskid")
-	if taskid == "" {
-		w.WriteHeader(http.StatusBadRequest)
-		fmt.Fprintln(w, "Parameter 'taskid' has not been set but is required.")
-		return
-	}
-	queue := r.URL.Query().Get("queue")
-	if queue == "" {
-		queue = "default"
-	}
+	encoder := json.NewEncoder(w)
+	encoder.SetIndent("", "    ")
 
 	inspector := asynq.NewInspector(asynq.RedisClientOpt{
 		Addr: address,
@@ -41,25 +33,54 @@ func HandleQueueGet(w http.ResponseWriter, r *http.Request, address string, db i
 	})
 	defer inspector.Close()
 
-	encoder := json.NewEncoder(w)
-	encoder.SetIndent("", "    ")
-
-	info, err := inspector.GetTaskInfo(queue, taskid)
-	if err != nil {
-		w.WriteHeader(http.StatusServiceUnavailable)
-		fmt.Fprintf(w, "Unable to get info for task: %v", err)
-		return
+	queue := r.URL.Query().Get("queue")
+	if queue == "" {
+		queue = "default"
 	}
+	taskid := r.URL.Query().Get("taskid")
+	if taskid == "" {
+		infos, err := inspector.ListCompletedTasks(queue)
+		if err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			fmt.Fprintf(w, "Unable to get info for task: %v", err)
+			return
+		}
 
-	if err := encoder.Encode(GeneratePromptResponse{
-		TaskID: info.ID,
-		State:  info.State.String(),
-		Queue:  info.Queue,
-		Result: string(info.Result),
-	}); err != nil {
-		w.WriteHeader(http.StatusServiceUnavailable)
-		fmt.Fprintf(w, "Unable to encode final result: %v", err)
-		return
+		res := make([]GeneratePromptResponse, 0)
+		for _, info := range infos {
+			res = append(res, GeneratePromptResponse{
+				TaskID: info.ID,
+				State:  info.State.String(),
+				Queue:  info.Queue,
+				Result: string(info.Result),
+			})
+		}
+
+		if err := encoder.Encode(res); err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			fmt.Fprintf(w, "Unable to encode final result: %v", err)
+			return
+		}
+	} else {
+		info, err := inspector.GetTaskInfo(queue, taskid)
+		if err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			fmt.Fprintf(w, "Unable to get info for task: %v", err)
+			return
+		}
+
+		res := GeneratePromptResponse{
+			TaskID: info.ID,
+			State:  info.State.String(),
+			Queue:  info.Queue,
+			Result: string(info.Result),
+		}
+
+		if err := encoder.Encode(res); err != nil {
+			w.WriteHeader(http.StatusServiceUnavailable)
+			fmt.Fprintf(w, "Unable to encode final result: %v", err)
+			return
+		}
 	}
 }
 
