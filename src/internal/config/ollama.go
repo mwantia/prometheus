@@ -3,13 +3,13 @@ package config
 import "fmt"
 
 type OllamaConfig struct {
-	Address string `hcl:"address,optional"`
-	Model   string `hcl:"model,optional"`
+	Endpoint string `hcl:"endpoint,optional"`
+	Model    string `hcl:"model,optional"`
 }
 
 func (c *OllamaConfig) ValidateConfig() error {
-	if c.Address == "" {
-		return fmt.Errorf("address is required")
+	if c.Endpoint == "" {
+		return fmt.Errorf("'endpoint' is required")
 	}
 
 	return nil

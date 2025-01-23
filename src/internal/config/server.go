@@ -9,7 +9,7 @@ type ServerConfig struct {
 
 func (c *ServerConfig) ValidateConfig() error {
 	if c.Address == "" {
-		return fmt.Errorf("address is required")
+		return fmt.Errorf("'address' is required")
 	}
 
 	return nil

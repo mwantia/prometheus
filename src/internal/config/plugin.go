@@ -18,7 +18,7 @@ type PluginConfigBody struct {
 
 func (c *PluginConfig) ValidatePluginConfig() error {
 	if c.Name == "" {
-		return fmt.Errorf("name is required")
+		return fmt.Errorf("'name' is required")
 	}
 
 	return nil

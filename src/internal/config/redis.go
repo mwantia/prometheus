@@ -3,13 +3,13 @@ package config
 import "fmt"
 
 type RedisConfig struct {
-	Address  string `hcl:"address,optional"`
+	Endpoint string `hcl:"endpoint,optional"`
 	Database int    `hcl:"database,optional"`
 }
 
 func (c *RedisConfig) ValidateConfig() error {
-	if c.Address == "" {
-		return fmt.Errorf("address is required")
+	if c.Endpoint == "" {
+		return fmt.Errorf("'endpoint' is required")
 	}
 
 	return nil

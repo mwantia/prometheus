@@ -29,11 +29,11 @@ func CreateDefault() *Config {
 			Enabled: true,
 		},
 		Redis: &RedisConfig{
-			Address:  "127.0.0.1:6379",
+			Endpoint: "redis:6379",
 			Database: 0,
 		},
 		Ollama: &OllamaConfig{
-			Address: "127.0.0.1:11434",
+			Endpoint: "ollama:11434",
 		},
 
 		Plugins: make([]*PluginConfig, 0),
@@ -42,38 +42,38 @@ func CreateDefault() *Config {
 
 func (c *Config) ValidateConfig() error {
 	if c.LogLevel == "" {
-		return fmt.Errorf("log_level is required")
+		return fmt.Errorf("'log_level' is required")
 	}
 	if c.PluginDir == "" {
-		return fmt.Errorf("plugin_dir is required")
+		return fmt.Errorf("'plugin_dir' is required")
 	}
 
 	if c.Server == nil {
-		return fmt.Errorf("server block is required")
+		return fmt.Errorf("block 'server' is required")
 	}
 	if err := c.Server.ValidateConfig(); err != nil {
-		return fmt.Errorf("invalid server block: %w", err)
+		return fmt.Errorf("invalid 'server' block: %w", err)
 	}
 
 	if c.Client == nil {
-		return fmt.Errorf("client block is required")
+		return fmt.Errorf("block 'client' is required")
 	}
 	if err := c.Client.ValidateConfig(); err != nil {
-		return fmt.Errorf("invalid client block: %w", err)
+		return fmt.Errorf("invalid 'client' block: %w", err)
 	}
 
 	if c.Redis == nil {
-		return fmt.Errorf("redis block is required")
+		return fmt.Errorf("block 'redis' is required")
 	}
 	if err := c.Redis.ValidateConfig(); err != nil {
-		return fmt.Errorf("invalid redis block: %w", err)
+		return fmt.Errorf("invalid 'redis' block: %w", err)
 	}
 
 	if c.Ollama == nil {
-		return fmt.Errorf("ollama block is required")
+		return fmt.Errorf("block 'ollama' is required")
 	}
 	if err := c.Ollama.ValidateConfig(); err != nil {
-		return fmt.Errorf("invalid ollama block: %w", err)
+		return fmt.Errorf("invalid 'ollama' block: %w", err)
 	}
 
 	return nil
