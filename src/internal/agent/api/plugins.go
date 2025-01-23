@@ -1,20 +1,15 @@
 package api
 
 import (
-	"encoding/json"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/mwantia/prometheus/internal/registry"
 )
 
-func HandlePlugins(reg *registry.PluginRegistry) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "    ")
-
+func HandlePlugins(reg *registry.PluginRegistry) gin.HandlerFunc {
+	return func(c *gin.Context) {
 		plugins := reg.GetPlugins()
-		encoder.Encode(plugins)
+		c.JSON(http.StatusOK, plugins)
 	}
 }

@@ -1,9 +1,9 @@
 package api
 
 import (
-	"encoding/json"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/mwantia/prometheus/internal/registry"
 )
 
@@ -20,10 +20,8 @@ type PluginHealth struct {
 	Error   string `json:"error,omitempty"`
 }
 
-func HandleHealth(reg *registry.PluginRegistry) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "application/json")
-
+func HandleHealth(reg *registry.PluginRegistry) gin.HandlerFunc {
+	return func(c *gin.Context) {
 		health := Health{
 			Status:  "OK",
 			Healthy: true,
@@ -52,16 +50,10 @@ func HandleHealth(reg *registry.PluginRegistry) http.HandlerFunc {
 
 		if !health.Healthy {
 			health.Status = "ERROR"
-			w.WriteHeader(http.StatusServiceUnavailable)
+			c.JSON(http.StatusServiceUnavailable, health)
+			return
 		}
 
-		encoder := json.NewEncoder(w)
-		encoder.SetIndent("", "    ")
-
-		if err := encoder.Encode(health); err != nil {
-			encoder.Encode(map[string]string{
-				"error": err.Error(),
-			})
-		}
+		c.JSON(http.StatusOK, health)
 	}
 }

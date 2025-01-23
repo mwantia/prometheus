@@ -24,7 +24,7 @@ type GeneratePrompt struct {
 }
 
 func CreateGeneratePromptTask(cfg *config.Config, reg *registry.PluginRegistry) func(context.Context, *asynq.Task) error {
-	client := ollama.CreateClient(cfg.Ollama.Address, http.DefaultClient)
+	client := ollama.CreateClient(cfg.Ollama.Endpoint, http.DefaultClient)
 	tools := createTools()
 
 	plugins := reg.GetPlugins()

@@ -6,6 +6,8 @@ import (
 	"log"
 	"net/http"
 
+	"github.com/gin-gonic/gin"
+
 	"github.com/mwantia/prometheus/internal/agent/api"
 	"github.com/mwantia/prometheus/internal/config"
 	"github.com/mwantia/prometheus/internal/registry"
@@ -14,19 +16,19 @@ import (
 type Server struct {
 	Operation
 
-	mux *http.ServeMux
-	srv *http.Server
+	engine *gin.Engine
+	srv    *http.Server
 }
 
 func (s *Server) Create(cfg *config.Config, reg *registry.PluginRegistry) (Cleanup, error) {
-	s.mux = http.NewServeMux()
+	s.engine = gin.Default()
 	if err := s.addRoutes(cfg, reg); err != nil {
 		return nil, fmt.Errorf("error adding routes: %w", err)
 	}
 
 	s.srv = &http.Server{
 		Addr:    cfg.Server.Address,
-		Handler: s.mux,
+		Handler: s.engine,
 	}
 
 	return func(ctx context.Context) error {
@@ -44,12 +46,15 @@ func (s *Server) Serve(ctx context.Context) error {
 }
 
 func (s *Server) addRoutes(cfg *config.Config, reg *registry.PluginRegistry) error {
-	s.mux.HandleFunc("/v1/health", api.HandleHealth(reg))
-	s.mux.HandleFunc("/v1/plugins", api.HandlePlugins(reg))
-	s.mux.HandleFunc("/v1/services", api.HandleServices(reg))
-	s.mux.HandleFunc("/v1/queue", api.HandleQueue(cfg.Redis.Address, cfg.Redis.Database))
+	v1 := s.engine.Group("/v1")
+	auth := s.engine.Group("/v1", tokenAuthMiddleware(cfg.Server.Token))
 
-	s.mux.Handle("/", http.NotFoundHandler())
+	v1.GET("/health", api.HandleHealth(reg))
+	auth.GET("/plugins", api.HandlePlugins(reg))
+	auth.GET("/services", api.HandleServices(reg))
+
+	auth.GET("/queue", api.HandleGetQueue(cfg.Redis.Endpoint, cfg.Redis.Database))
+	auth.POST("/queue", api.HandlePostQueue(cfg.Redis.Endpoint, cfg.Redis.Database))
 
 	return nil
 }

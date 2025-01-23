@@ -21,7 +21,7 @@ func TestChat(tst *testing.T) {
 	}
 
 	ctx := context.TODO()
-	client := CreateClient(cfg.Ollama.Address, http.DefaultClient)
+	client := CreateClient(cfg.Ollama.Endpoint, http.DefaultClient)
 	client.Style = ConciseStyle
 
 	tools := []Tool{
