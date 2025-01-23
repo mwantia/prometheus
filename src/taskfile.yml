@@ -3,7 +3,7 @@ version: '3'
 env:
   DOCKER_REGISTRY: registry.wantia.app
   DOCKER_IMAGE: mwantia/prometheus
-  DOCKER_VERSION: v0.0.7
+  DOCKER_VERSION: v0.0.8
   DOCKER_PLATFORMS: linux/amd64,linux/arm64
 
 tasks:
@@ -19,6 +19,7 @@ tasks:
   run:
     cmds:
       - go run cmd/prometheus/main.go agent --config ./tests/config.hcl
+    ignore_error: true
 
   release:
     cmds:

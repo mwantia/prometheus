@@ -6,6 +6,7 @@ import (
 	"os"
 	"strings"
 
+	"github.com/gin-gonic/gin"
 	"github.com/mwantia/prometheus/internal/agent"
 	"github.com/mwantia/prometheus/internal/config"
 	"github.com/spf13/cobra"
@@ -32,7 +33,10 @@ var (
 				return fmt.Errorf("unable to validate config: %v", err)
 			}
 
-			// log.SetOutput(io.Discard)
+			if !strings.EqualFold("debug", cfg.LogLevel) {
+				gin.SetMode(gin.ReleaseMode)
+			}
+
 			Config = cfg
 
 			return nil
