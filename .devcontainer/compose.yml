@@ -1,3 +1,5 @@
 services:
   devcontainer:
     build: .
+  redis:
+    image: redis:latest
