@@ -3,3 +3,8 @@ services:
     build: .
   redis:
     image: redis:latest
+  victoriametrics:
+    image: victoriametrics/victoria-metrics:latest
+    command: ["--promscrape.config=/config/prometheus.yml"]
+    volumes:
+      - ./config/prometheus.yml:/config/prometheus.yml:ro
