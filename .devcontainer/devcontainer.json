@@ -45,7 +45,7 @@
         },
         "ghcr.io/devcontainers/features/docker-in-docker:2": {}
     },
-    "postCreateCommand": "cd src && go mod download && go mod tidy",
+    "postCreateCommand": "cd src && go mod download && go mod tidy && go install github.com/go-task/task/v3/cmd/task@latest",
     "overrideCommand": true,
     "mounts": [
         "source=../,target=/workspace,type=bind",
