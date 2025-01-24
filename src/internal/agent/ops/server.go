@@ -72,10 +72,14 @@ func (s *Server) addRoutes(cfg *config.Config, reg *registry.PluginRegistry) err
 	auth := s.engine.Group("/v1", tokenAuthMiddleware(cfg.Server.Token))
 
 	v1.GET("/health", api.HandleGetHealth(reg))
+	v1.HEAD("/health", api.HandleIsHealthy(reg))
+
 	auth.GET("/plugins", api.HandlePlugins(reg))
 	auth.GET("/services", api.HandleServices(reg))
+
 	auth.GET("/queue", api.HandleGetQueue(cfg))
 	auth.GET("/queue/:taskid", api.HandleGetQueueTask(cfg))
+	auth.HEAD("/queue/:taskid", api.HandleIsQueueTaskDone(cfg))
 	auth.POST("/queue", api.HandlePostQueue(cfg))
 
 	return nil

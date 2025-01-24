@@ -20,7 +20,7 @@ type PluginHealth struct {
 	Error   string `json:"error,omitempty"`
 }
 
-func HandleHealth(reg *registry.PluginRegistry) gin.HandlerFunc {
+func HandleGetHealth(reg *registry.PluginRegistry) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		health := Health{
 			Status:  "OK",
@@ -55,5 +55,18 @@ func HandleHealth(reg *registry.PluginRegistry) gin.HandlerFunc {
 		}
 
 		c.JSON(http.StatusOK, health)
+	}
+}
+
+func HandleIsHealthy(reg *registry.PluginRegistry) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		for _, plugin := range reg.GetPlugins() {
+			if !plugin.IsHealthy {
+				c.Status(http.StatusServiceUnavailable)
+				return
+			}
+		}
+
+		c.Status(http.StatusOK)
 	}
 }
