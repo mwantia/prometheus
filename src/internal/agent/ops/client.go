@@ -19,8 +19,9 @@ type Client struct {
 func (c *Client) Create(cfg *config.Config, reg *registry.PluginRegistry) (Cleanup, error) {
 	c.mux = asynq.NewServeMux()
 	c.srv = asynq.NewServer(asynq.RedisClientOpt{
-		Addr: cfg.Redis.Endpoint,
-		DB:   cfg.Redis.Database,
+		Addr:     cfg.Redis.Endpoint,
+		DB:       cfg.Redis.Database,
+		Password: cfg.Redis.Password,
 	}, asynq.Config{
 		Concurrency: 1,
 		Queues: map[string]int{

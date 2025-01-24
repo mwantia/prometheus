@@ -1,4 +1,4 @@
-log_level = "debug"
+log_level = "info"
 plugin_dir = "./plugins"
 embed_plugins = []
 
@@ -11,10 +11,18 @@ client {
     enabled = true
 }
 
-redis {
+metrics {
+    enabled = true
+    address = ":9001"
+}
 
+redis {
+    endpoint = "127.0.0.1:6379"
+    database = 0
+    password = ""
 }
 
 ollama {
-
+    endpoint = "127.0.0.1:11434"
+    model    = ""
 }

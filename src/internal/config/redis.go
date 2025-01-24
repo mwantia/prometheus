@@ -5,6 +5,7 @@ import "fmt"
 type RedisConfig struct {
 	Endpoint string `hcl:"endpoint,optional"`
 	Database int    `hcl:"database,optional"`
+	Password string `hcl:"password,optional"`
 }
 
 func (c *RedisConfig) ValidateConfig() error {

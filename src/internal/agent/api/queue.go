@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/hibiken/asynq"
+	"github.com/mwantia/prometheus/internal/config"
 	"github.com/mwantia/prometheus/pkg/tasks"
 )
 
@@ -24,11 +25,12 @@ type GeneratePromptResponse struct {
 	Result string `json:"result,omitempty"`
 }
 
-func HandleGetQueue(address string, db int) gin.HandlerFunc {
+func HandleGetQueue(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		inspector := asynq.NewInspector(asynq.RedisClientOpt{
-			Addr: address,
-			DB:   db,
+			Addr:     cfg.Redis.Endpoint,
+			DB:       cfg.Redis.Database,
+			Password: cfg.Redis.Password,
 		})
 		defer inspector.Close()
 
@@ -76,7 +78,7 @@ func HandleGetQueue(address string, db int) gin.HandlerFunc {
 	}
 }
 
-func HandlePostQueue(address string, db int) gin.HandlerFunc {
+func HandlePostQueue(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var request GeneratePromptRequest
 		if err := c.BindJSON(&request); err != nil {
@@ -87,8 +89,9 @@ func HandlePostQueue(address string, db int) gin.HandlerFunc {
 		}
 
 		client := asynq.NewClient(asynq.RedisClientOpt{
-			Addr: address,
-			DB:   db,
+			Addr:     cfg.Redis.Endpoint,
+			DB:       cfg.Redis.Database,
+			Password: cfg.Redis.Password,
 		})
 		defer client.Close()
 

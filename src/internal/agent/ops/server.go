@@ -53,8 +53,8 @@ func (s *Server) addRoutes(cfg *config.Config, reg *registry.PluginRegistry) err
 	auth.GET("/plugins", api.HandlePlugins(reg))
 	auth.GET("/services", api.HandleServices(reg))
 
-	auth.GET("/queue", api.HandleGetQueue(cfg.Redis.Endpoint, cfg.Redis.Database))
-	auth.POST("/queue", api.HandlePostQueue(cfg.Redis.Endpoint, cfg.Redis.Database))
+	auth.GET("/queue", api.HandleGetQueue(cfg))
+	auth.POST("/queue", api.HandlePostQueue(cfg))
 
 	return nil
 }

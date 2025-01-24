@@ -18,7 +18,8 @@
                 "vscode-icons-team.vscode-icons",
                 "redhat.vscode-yaml",
                 "usernamehw.indent-one-space",
-                "emmanuelbeziat.vscode-great-icons"
+                "emmanuelbeziat.vscode-great-icons",
+                "hashicorp.hcl"
             ],
             "settings": {
                 "go.toolsManagement.checkForUpdates": "local",
