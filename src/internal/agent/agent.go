@@ -95,6 +95,32 @@ func (a *PrometheusAgent) Serve(ctx context.Context) error {
 		}()
 	}
 
+	if a.Config.Metrics.Enabled {
+		wg.Add(1)
+
+		metrics := ops.Metrics{}
+		cleanup, err := metrics.Create(a.Config, a.Registry)
+		if err != nil {
+			return fmt.Errorf("failed to create metrics: %w", err)
+		}
+
+		cleanups = append(cleanups, func() error {
+			shutdown, cncl := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cncl()
+
+			return cleanup(shutdown)
+		})
+
+		go func() {
+			defer wg.Done()
+
+			log.Println("Starting metrics...")
+			if err := metrics.Serve(ctx); err != nil {
+				log.Fatalf("Error serving metrics: %v", err)
+			}
+		}()
+	}
+
 	go a.Registry.Watch(ctx)
 
 	<-ctx.Done()

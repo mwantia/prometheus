@@ -7,10 +7,11 @@ type Config struct {
 	PluginDir    string   `hcl:"plugin_dir,optional"`
 	EmbedPlugins []string `hcl:"embed_plugins,optional"`
 
-	Server *ServerConfig `hcl:"server,block"`
-	Client *ClientConfig `hcl:"client,block"`
-	Redis  *RedisConfig  `hcl:"redis,block"`
-	Ollama *OllamaConfig `hcl:"ollama,block"`
+	Server  *ServerConfig  `hcl:"server,block"`
+	Client  *ClientConfig  `hcl:"client,block"`
+	Metrics *MetricsConfig `hcl:"metrics,block"`
+	Redis   *RedisConfig   `hcl:"redis,block"`
+	Ollama  *OllamaConfig  `hcl:"ollama,block"`
 
 	Plugins []*PluginConfig `hcl:"plugin,block"`
 }
@@ -28,9 +29,14 @@ func CreateDefault() *Config {
 		Client: &ClientConfig{
 			Enabled: true,
 		},
+		Metrics: &MetricsConfig{
+			Enabled: true,
+			Address: ":9001",
+		},
 		Redis: &RedisConfig{
 			Endpoint: "redis:6379",
 			Database: 0,
+			Password: "",
 		},
 		Ollama: &OllamaConfig{
 			Endpoint: "ollama:11434",
@@ -60,6 +66,13 @@ func (c *Config) ValidateConfig() error {
 	}
 	if err := c.Client.ValidateConfig(); err != nil {
 		return fmt.Errorf("invalid 'client' block: %w", err)
+	}
+
+	if c.Metrics == nil {
+		return fmt.Errorf("block 'metrics' is required")
+	}
+	if err := c.Metrics.ValidateConfig(); err != nil {
+		return fmt.Errorf("invalid 'metrics' block: %w", err)
 	}
 
 	if c.Redis == nil {

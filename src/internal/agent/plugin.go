@@ -7,6 +7,7 @@ import (
 	"os/exec"
 
 	goplugin "github.com/hashicorp/go-plugin"
+	"github.com/mwantia/prometheus/internal/metrics"
 	"github.com/mwantia/prometheus/internal/plugin/essentials"
 	"github.com/mwantia/prometheus/internal/registry"
 	"github.com/mwantia/prometheus/pkg/plugin"
@@ -101,10 +102,10 @@ func (a *PrometheusAgent) RunLocalPlugin(path string, arg ...string) error {
 		return fmt.Errorf("failed to get plugin info: %w", err)
 	}
 
-	/* data, err := a.Config.GetPluginConfigMap(info.Name)
-	if err != nil {
-		log.Printf("Unable to load plugin config: %v", err)
-	} */
+	metrics.RegisterActivePlugin(info.Name, info.Version, info.Author)
+	for _, service := range info.Services {
+		metrics.RegisterActiveService(info.Name, service.Name, string(service.Type))
+	}
 
 	i := &registry.PluginInfo{
 		Name:     info.Name,
