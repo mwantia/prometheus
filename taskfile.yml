@@ -1,0 +1,31 @@
+version: '3'
+
+env:
+  DOCKER_REGISTRY: registry.wantia.app
+  DOCKER_IMAGE: mwantia/prometheus
+  DOCKER_VERSION: v0.1.5
+  DOCKER_PLATFORMS: linux/amd64,linux/arm64
+
+tasks:
+  setup:
+    dir: src
+    cmds:
+      - go mod download
+      - go mod tidy
+      - docker login ${DOCKER_REGISTRY}
+      - docker buildx create --use --name multi-arch-builder || true
+  build:
+    dir: src
+    cmds:
+      - go build -o ./build/prometheus ./cmd/prometheus/main.go
+  run:
+    dir: src
+    cmds:
+      - go run cmd/prometheus/main.go agent --config ./tests/config.hcl
+    ignore_error: true
+
+  release:
+    dir: src
+    cmds:
+      - task: setup
+      - docker buildx build --push --platform ${DOCKER_PLATFORMS} -t ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_VERSION} -t ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:latest .
