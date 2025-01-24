@@ -3,7 +3,6 @@ package ops
 import (
 	"context"
 	"fmt"
-	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -13,16 +12,19 @@ import (
 	"github.com/mwantia/prometheus/internal/config"
 	"github.com/mwantia/prometheus/internal/metrics"
 	"github.com/mwantia/prometheus/internal/registry"
+	"github.com/mwantia/prometheus/pkg/log"
 )
 
 type Server struct {
 	Operation
 
+	Log    log.Logger
 	engine *gin.Engine
 	srv    *http.Server
 }
 
 func (s *Server) Create(cfg *config.Config, reg *registry.PluginRegistry) (Cleanup, error) {
+	s.Log = *log.New("server")
 	s.engine = gin.Default()
 	s.srv = &http.Server{
 		Addr:    cfg.Server.Address,
@@ -43,7 +45,7 @@ func (s *Server) Create(cfg *config.Config, reg *registry.PluginRegistry) (Clean
 }
 
 func (s *Server) Serve(ctx context.Context) error {
-	log.Printf("Serving http server: %s", s.srv.Addr)
+	s.Log.Info("Serving http server", "addr", s.srv.Addr)
 	if err := s.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return err
 	}
@@ -69,11 +71,11 @@ func (s *Server) addRoutes(cfg *config.Config, reg *registry.PluginRegistry) err
 	v1 := s.engine.Group("/v1")
 	auth := s.engine.Group("/v1", tokenAuthMiddleware(cfg.Server.Token))
 
-	v1.GET("/health", api.HandleHealth(reg))
+	v1.GET("/health", api.HandleGetHealth(reg))
 	auth.GET("/plugins", api.HandlePlugins(reg))
 	auth.GET("/services", api.HandleServices(reg))
-
 	auth.GET("/queue", api.HandleGetQueue(cfg))
+	auth.GET("/queue/:taskid", api.HandleGetQueueTask(cfg))
 	auth.POST("/queue", api.HandlePostQueue(cfg))
 
 	return nil

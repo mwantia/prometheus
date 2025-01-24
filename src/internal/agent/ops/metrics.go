@@ -2,11 +2,11 @@ package ops
 
 import (
 	"context"
-	"log"
 	"net/http"
 
 	"github.com/mwantia/prometheus/internal/config"
 	"github.com/mwantia/prometheus/internal/registry"
+	"github.com/mwantia/prometheus/pkg/log"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
@@ -16,10 +16,12 @@ type Metrics struct {
 	srv *http.Server
 	mux *http.ServeMux
 
+	Log       log.Logger
 	Namespace string
 }
 
 func (m *Metrics) Create(cfg *config.Config, reg *registry.PluginRegistry) (Cleanup, error) {
+	m.Log = *log.New("metrics")
 	m.mux = http.NewServeMux()
 	m.srv = &http.Server{
 		Addr:    cfg.Metrics.Address,
@@ -34,7 +36,7 @@ func (m *Metrics) Create(cfg *config.Config, reg *registry.PluginRegistry) (Clea
 }
 
 func (m *Metrics) Serve(ctx context.Context) error {
-	log.Printf("Serving metrics server: %s", m.srv.Addr)
+	m.Log.Info("Serving metrics server", "addr", m.srv.Addr)
 	if err := m.srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		return err
 	}

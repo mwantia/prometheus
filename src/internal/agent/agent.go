@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"sync"
@@ -13,16 +12,19 @@ import (
 	"github.com/mwantia/prometheus/internal/agent/ops"
 	"github.com/mwantia/prometheus/internal/config"
 	"github.com/mwantia/prometheus/internal/registry"
+	"github.com/mwantia/prometheus/pkg/log"
 )
 
 type PrometheusAgent struct {
 	Mutex    sync.RWMutex
+	Log      log.Logger
 	Registry *registry.PluginRegistry
 	Config   *config.Config
 }
 
 func CreateNewAgent(c *config.Config) *PrometheusAgent {
 	return &PrometheusAgent{
+		Log:      *log.New("agent"),
 		Registry: registry.NewRegistry(),
 		Config:   c,
 	}
@@ -36,11 +38,11 @@ func (a *PrometheusAgent) Serve(ctx context.Context) error {
 	cleanups := []func() error{}
 
 	if err := a.serveLocalPlugins(); err != nil {
-		log.Printf("Unable to serve local plugin: %v", err)
+		a.Log.Warn("Unable to serve local plugin", "error", err)
 	}
 
 	if err := a.serveEmbedPlugins(); err != nil {
-		log.Printf("Unable to serve embed plugin: %v", err)
+		a.Log.Warn("Unable to serve embed plugin", "error", err)
 	}
 
 	if a.Config.Server.Enabled {
@@ -62,9 +64,9 @@ func (a *PrometheusAgent) Serve(ctx context.Context) error {
 		go func() {
 			defer wg.Done()
 
-			log.Println("Starting server...")
+			a.Log.Debug("Starting server...")
 			if err := srv.Serve(ctx); err != nil {
-				log.Fatalf("Error serving server: %v", err)
+				a.Log.Error("Error serving server", "error", err)
 			}
 		}()
 	}
@@ -88,9 +90,9 @@ func (a *PrometheusAgent) Serve(ctx context.Context) error {
 		go func() {
 			defer wg.Done()
 
-			log.Println("Starting client...")
+			a.Log.Debug("Starting client...")
 			if err := client.Serve(ctx); err != nil {
-				log.Fatalf("Error serving client: %v", err)
+				a.Log.Error("Error serving client", "error", err)
 			}
 		}()
 	}
@@ -114,9 +116,9 @@ func (a *PrometheusAgent) Serve(ctx context.Context) error {
 		go func() {
 			defer wg.Done()
 
-			log.Println("Starting metrics...")
+			a.Log.Debug("Starting metrics...")
 			if err := metrics.Serve(ctx); err != nil {
-				log.Fatalf("Error serving metrics: %v", err)
+				a.Log.Error("Error serving metrics", "error", err)
 			}
 		}()
 	}
@@ -124,11 +126,11 @@ func (a *PrometheusAgent) Serve(ctx context.Context) error {
 	go a.Registry.Watch(ctx)
 
 	<-ctx.Done()
-	log.Println("Shutting down agent...")
+	a.Log.Debug("Shutting down agent...")
 
 	for _, cleanup := range cleanups {
 		if err := cleanup(); err != nil {
-			log.Printf("Error during cleanup: %v", err)
+			a.Log.Error("Error during agent cleanup", "error", err)
 		}
 	}
 
@@ -144,7 +146,7 @@ func (a *PrometheusAgent) Cleanup() error {
 
 	for _, plugin := range a.Registry.GetPlugins() {
 		if cleanupErr := plugin.Cleanup(); cleanupErr != nil {
-			log.Printf("Error while performing cleanup for plugin '%s'", plugin.Name)
+			a.Log.Error("Error while performing cleanup for plugin", "name", plugin.Name)
 			err = errors.Join(err, cleanupErr)
 		}
 	}

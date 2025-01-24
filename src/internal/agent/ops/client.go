@@ -6,17 +6,20 @@ import (
 	"github.com/hibiken/asynq"
 	"github.com/mwantia/prometheus/internal/config"
 	"github.com/mwantia/prometheus/internal/registry"
+	"github.com/mwantia/prometheus/pkg/log"
 	"github.com/mwantia/prometheus/pkg/tasks"
 )
 
 type Client struct {
 	Operation
 
+	Log log.Logger
 	mux *asynq.ServeMux
 	srv *asynq.Server
 }
 
 func (c *Client) Create(cfg *config.Config, reg *registry.PluginRegistry) (Cleanup, error) {
+	c.Log = *log.New("client")
 	c.mux = asynq.NewServeMux()
 	c.srv = asynq.NewServer(asynq.RedisClientOpt{
 		Addr:     cfg.Redis.Endpoint,

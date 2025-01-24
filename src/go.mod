@@ -3,6 +3,7 @@ module github.com/mwantia/prometheus
 go 1.23.4
 
 require (
+	github.com/hashicorp/go-hclog v0.14.1
 	github.com/hibiken/asynq v0.25.1
 	github.com/spf13/cobra v1.8.1
 	github.com/zclconf/go-cty v1.16.0
@@ -29,7 +30,6 @@ require (
 	github.com/golang/protobuf v1.5.4 // indirect
 	github.com/google/go-cmp v0.6.0 // indirect
 	github.com/google/uuid v1.6.0 // indirect
-	github.com/hashicorp/go-hclog v0.14.1 // indirect
 	github.com/hashicorp/yamux v0.1.1 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.17.9 // indirect

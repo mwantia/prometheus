@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/mwantia/prometheus/internal/agent"
 	"github.com/mwantia/prometheus/internal/config"
+	"github.com/mwantia/prometheus/pkg/log"
 	"github.com/spf13/cobra"
 )
 
@@ -26,11 +27,15 @@ var (
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := config.ParseConfig(ConfigFlag)
 			if err != nil {
-				return fmt.Errorf("unable to complete config: %v", err)
+				return fmt.Errorf("unable to complete config: %w", err)
 			}
 
 			if err := cfg.ValidateConfig(); err != nil {
-				return fmt.Errorf("unable to validate config: %v", err)
+				return fmt.Errorf("unable to validate config: %w", err)
+			}
+
+			if err := log.Setup(cfg.LogLevel, NoColorFlag); err != nil {
+				return fmt.Errorf("unable to setup logging: %w", err)
 			}
 
 			if !strings.EqualFold("debug", cfg.LogLevel) {

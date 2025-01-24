@@ -2,7 +2,6 @@ package agent
 
 import (
 	"fmt"
-	"log"
 	"os"
 	"os/exec"
 
@@ -34,7 +33,7 @@ func (a *PrometheusAgent) serveLocalPlugins() error {
 		if !file.IsDir() {
 			path := fmt.Sprintf("%s/%s", a.Config.PluginDir, file.Name())
 			if err := a.RunLocalPlugin(path); err != nil {
-				log.Printf("Unable to load local plugin: %v", err)
+				a.Log.Warn("Unable to load local plugin", "path", path, "error", err)
 			}
 		}
 	}
@@ -48,10 +47,10 @@ func (a *PrometheusAgent) serveEmbedPlugins() error {
 		if exists && p != nil {
 			err := a.RunEmbedPlugin(name)
 			if err != nil {
-				log.Printf("Error serving embed plugin: %v", err)
+				a.Log.Error("Error serving embed plugin", "name", name, "error", err)
 			}
 		} else {
-			log.Printf("Embedded plugin '%s' doesn't exist", name)
+			a.Log.Warn("Embedded plugin doesn't exist", "name", name)
 		}
 	}
 
@@ -75,7 +74,7 @@ func (a *PrometheusAgent) RunLocalPlugin(path string, arg ...string) error {
 	a.Mutex.Lock()
 	defer a.Mutex.Unlock()
 
-	log.Printf("Run local plugin '%s' with args: %v", path, arg)
+	a.Log.Debug("Running local plugin", "path", path, "args", arg)
 
 	client := goplugin.NewClient(&goplugin.ClientConfig{
 		HandshakeConfig: plugin.Handshake,
@@ -160,14 +159,7 @@ func (a *PrometheusAgent) RunLocalPlugin(path string, arg ...string) error {
 		return fmt.Errorf("failed to register plugin: %w", err)
 	}
 
-	log.Printf("Loaded local plugin '%v'", info.Name)
-
-	/*if err := driver.Setup(plugin.PluginSetup{
-		Data: data,
-	}); err != nil {
-		client.Kill()
-		return err
-	}*/
+	a.Log.Info("Loaded new local plugin", "name", info.Name, "version", info.Version, "author", info.Author)
 
 	return nil
 }
