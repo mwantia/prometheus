@@ -58,7 +58,10 @@ func handleGeneratePromptTask(client *ollama.Client, tools []ollama.Tool, model 
 			prompt.Style = string(client.Style)
 		}
 
-		observer := metrics.ClientGeneratePromptTasksDurationSeconds.WithLabelValues(client.Endpoint, prompt.Model, prompt.Style)
+		observer := prometheus.ObserverFunc(func(v float64) {
+			metrics.ClientGeneratePromptTasksDurationSeconds.WithLabelValues(client.Endpoint, prompt.Model, prompt.Style).Observe(v)
+		})
+
 		timer := prometheus.NewTimer(observer)
 		defer timer.ObserveDuration()
 
@@ -86,7 +89,10 @@ func handleGeneratePromptTask(client *ollama.Client, tools []ollama.Tool, model 
 			switch tc.Function.Name {
 			case "get_current_time":
 				tz := tc.Function.Arguments["timezone"]
-				loc, _ := time.LoadLocation(tz.(string))
+				loc, err := time.LoadLocation(tz.(string))
+				if err != nil {
+					return "", fmt.Errorf("unable to load timezone '%v': %w", tz, err)
+				}
 
 				return time.Now().In(loc).Format("Mon Jan 2 15:04:05"), nil
 			}

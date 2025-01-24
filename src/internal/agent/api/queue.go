@@ -15,6 +15,8 @@ import (
 type GeneratePromptRequest struct {
 	Prompt string `json:"prompt"`
 	Model  string `json:"model,omitempty"`
+	Queue  string `json:"queue,omitempty"`
+	Style  string `json:"style,omitempty"`
 }
 
 type GeneratePromptResponse struct {
@@ -163,6 +165,10 @@ func HandlePostQueue(cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
+		if request.Queue == "" {
+			request.Queue = "normal"
+		}
+
 		client := asynq.NewClient(asynq.RedisClientOpt{
 			Addr:     cfg.Redis.Endpoint,
 			DB:       cfg.Redis.Database,
@@ -173,6 +179,7 @@ func HandlePostQueue(cfg *config.Config) gin.HandlerFunc {
 		prompt, err := json.Marshal(tasks.GeneratePrompt{
 			Content: request.Prompt,
 			Model:   request.Model,
+			Style:   request.Style,
 		})
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -184,7 +191,7 @@ func HandlePostQueue(cfg *config.Config) gin.HandlerFunc {
 		task := asynq.NewTask(tasks.TaskTypeGeneratePrompt, prompt)
 		taskid := fmt.Sprintf("t%d", time.Now().UnixNano())
 
-		info, err := client.EnqueueContext(c.Request.Context(), task, asynq.TaskID(taskid), asynq.Retention(7*24*time.Hour))
+		info, err := client.EnqueueContext(c.Request.Context(), task, asynq.Queue(request.Queue), asynq.TaskID(taskid), asynq.Retention(7*24*time.Hour))
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"error": fmt.Sprintf("Unable to enqueue task: %v", err),

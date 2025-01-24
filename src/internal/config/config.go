@@ -29,6 +29,7 @@ func CreateDefault() *Config {
 		},
 		Client: &ClientConfig{
 			Enabled: true,
+			Queues:  []string{"high", "normal", "low"},
 		},
 		Metrics: &MetricsConfig{
 			Enabled: true,
