@@ -28,6 +28,10 @@ var (
 func init() {
 	prometheus.MustRegister(ActivePluginsInfo)
 	prometheus.MustRegister(ActiveServicesInfo)
+	prometheus.MustRegister(ServerHttpRequestsDurationSeconds)
+	prometheus.MustRegister(ServerHttpRequestsTotal)
+	prometheus.MustRegister(ClientGeneratePromptTasksDurationSeconds)
+	prometheus.MustRegister(ClientGeneratePromptTasksTotal)
 }
 
 func RegisterActivePlugin(name, version, author string) {

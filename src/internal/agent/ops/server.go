@@ -7,9 +7,11 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/mwantia/prometheus/internal/agent/api"
 	"github.com/mwantia/prometheus/internal/config"
+	"github.com/mwantia/prometheus/internal/metrics"
 	"github.com/mwantia/prometheus/internal/registry"
 )
 
@@ -22,13 +24,17 @@ type Server struct {
 
 func (s *Server) Create(cfg *config.Config, reg *registry.PluginRegistry) (Cleanup, error) {
 	s.engine = gin.Default()
-	if err := s.addRoutes(cfg, reg); err != nil {
-		return nil, fmt.Errorf("error adding routes: %w", err)
-	}
-
 	s.srv = &http.Server{
 		Addr:    cfg.Server.Address,
 		Handler: s.engine,
+	}
+
+	if err := s.addMiddlewares(); err != nil {
+		return nil, fmt.Errorf("error adding routes: %w", err)
+	}
+
+	if err := s.addRoutes(cfg, reg); err != nil {
+		return nil, fmt.Errorf("error adding routes: %w", err)
 	}
 
 	return func(ctx context.Context) error {
@@ -42,6 +48,20 @@ func (s *Server) Serve(ctx context.Context) error {
 		return err
 	}
 
+	return nil
+}
+
+func (s *Server) addMiddlewares() error {
+	s.engine.Use(func(c *gin.Context) {
+		observer := metrics.ServerHttpRequestsDurationSeconds.WithLabelValues(c.Request.Method, s.srv.Addr, c.FullPath())
+
+		timer := prometheus.NewTimer(observer)
+		defer timer.ObserveDuration()
+
+		metrics.ServerHttpRequestsTotal.WithLabelValues(c.Request.Method, s.srv.Addr, c.FullPath()).Inc()
+
+		c.Next()
+	})
 	return nil
 }
 

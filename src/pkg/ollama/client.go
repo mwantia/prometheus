@@ -10,15 +10,15 @@ import (
 type Client struct {
 	http *http.Client `json:"-"`
 
-	Uri   string `json:"uri"`
-	Style Style  `json:"style,omitempty"`
+	Endpoint string `json:"uri"`
+	Style    Style  `json:"style,omitempty"`
 }
 
-func CreateClient(uri string, http *http.Client) *Client {
+func CreateClient(endpoint string, http *http.Client) *Client {
 	return &Client{
-		http:  http,
-		Uri:   uri,
-		Style: DefaultStyle,
+		http:     http,
+		Endpoint: endpoint,
+		Style:    DefaultStyle,
 	}
 }
 

@@ -24,7 +24,7 @@ func (c *Client) stream(ctx context.Context, method, path string, data any, hand
 		return fmt.Errorf("create buffer error: %w", err)
 	}
 
-	request, err := http.NewRequestWithContext(ctx, method, c.Uri+path, buf)
+	request, err := http.NewRequestWithContext(ctx, method, c.Endpoint+path, buf)
 	if err != nil {
 		return fmt.Errorf("unable to create http request: %w", err)
 	}

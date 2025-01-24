@@ -11,8 +11,10 @@ import (
 
 	"github.com/hibiken/asynq"
 	"github.com/mwantia/prometheus/internal/config"
+	"github.com/mwantia/prometheus/internal/metrics"
 	"github.com/mwantia/prometheus/internal/registry"
 	"github.com/mwantia/prometheus/pkg/ollama"
+	"github.com/prometheus/client_golang/prometheus"
 )
 
 const TaskTypeGeneratePrompt = "task:generate"
@@ -52,6 +54,15 @@ func handleGeneratePromptTask(client *ollama.Client, tools []ollama.Tool, model 
 		if prompt.Model == "" {
 			prompt.Model = model
 		}
+		if prompt.Style == "" {
+			prompt.Style = string(client.Style)
+		}
+
+		observer := metrics.ClientGeneratePromptTasksDurationSeconds.WithLabelValues(client.Endpoint, prompt.Model, prompt.Style)
+		timer := prometheus.NewTimer(observer)
+		defer timer.ObserveDuration()
+
+		metrics.ClientGeneratePromptTasksTotal.WithLabelValues(client.Endpoint, prompt.Model, prompt.Style).Inc()
 
 		log.Printf("Handling prompt: %s", prompt.Content)
 		req := ollama.ChatRequest{

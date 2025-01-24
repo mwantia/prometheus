@@ -2,7 +2,6 @@ package ops
 
 import (
 	"context"
-	"fmt"
 	"log"
 	"net/http"
 
@@ -27,18 +26,11 @@ func (m *Metrics) Create(cfg *config.Config, reg *registry.PluginRegistry) (Clea
 		Handler: m.mux,
 	}
 
-	if err := m.addMetricsHandler(); err != nil {
-		return nil, fmt.Errorf("error adding metrics: %w", err)
-	}
+	m.mux.Handle("/metrics", promhttp.Handler())
 
 	return func(ctx context.Context) error {
 		return m.srv.Shutdown(ctx)
 	}, nil
-}
-
-func (m *Metrics) addMetricsHandler() error {
-	m.mux.Handle("/metrics", promhttp.Handler())
-	return nil
 }
 
 func (m *Metrics) Serve(ctx context.Context) error {
