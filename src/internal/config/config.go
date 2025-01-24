@@ -24,22 +24,22 @@ func CreateDefault() *Config {
 
 		Server: &ServerConfig{
 			Enabled: true,
-			Address: ":8080",
+			Address: "0.0.0.0:8080",
 		},
 		Client: &ClientConfig{
 			Enabled: true,
 		},
 		Metrics: &MetricsConfig{
 			Enabled: true,
-			Address: ":9001",
+			Address: "127.0.0.1:9001",
 		},
 		Redis: &RedisConfig{
-			Endpoint: "redis:6379",
+			Endpoint: "127.0.0.1:6379",
 			Database: 0,
 			Password: "",
 		},
 		Ollama: &OllamaConfig{
-			Endpoint: "ollama:11434",
+			Endpoint: "127.0.0.1:11434",
 		},
 
 		Plugins: make([]*PluginConfig, 0),

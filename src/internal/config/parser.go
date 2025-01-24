@@ -3,6 +3,7 @@ package config
 import (
 	"errors"
 	"fmt"
+	"log"
 	"os"
 
 	"github.com/hashicorp/hcl/v2"
@@ -12,7 +13,12 @@ import (
 
 func ParseConfig(path string) (*Config, error) {
 	config := CreateDefault()
+	if path == "" {
+		return config, nil
+	}
+
 	if _, err := os.Stat(path); errors.Is(err, os.ErrNotExist) {
+		log.Printf("Unable to access config file '%s': %v", path, err)
 		return config, nil
 	}
 

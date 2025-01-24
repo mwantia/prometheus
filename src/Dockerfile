@@ -20,8 +20,9 @@ ARG TARGETARCH
 RUN apk add --no-cache bash ca-certificates && update-ca-certificates
 # Copy executable from build
 COPY --from=gobuild /build/prometheus /prometheus
-# Expose port 8080 by default
+# Expose port 8080 and 9001 by default
 EXPOSE 8080
+EXPOSE 9001
 # Set entrypoint to run executable
 ENTRYPOINT [ "/prometheus" ]
 CMD [ "agent" ]
