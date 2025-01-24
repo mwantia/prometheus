@@ -22,7 +22,7 @@ var (
 			Subsystem: MetricsServerSubsystem,
 			Name:      "http_requests_duration_seconds",
 			Help:      "Histogram of the time (in seconds) each http request took",
-			Buckets:   []float64{.001, .002, .005, .01, .02, .05, .1, .2, .5, 1},
+			Buckets:   prometheus.ExponentialBuckets(0.0001, 2, 15),
 		},
 		[]string{"method", "addr", "path"},
 	)

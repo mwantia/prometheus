@@ -71,14 +71,16 @@ func (s *Server) addMiddlewares() error {
 		c.Next()
 	})
 	s.engine.Use(func(c *gin.Context) {
-		observer := metrics.ServerHttpRequestsDurationSeconds.WithLabelValues(c.Request.Method, s.srv.Addr, c.FullPath())
+		observer := prometheus.ObserverFunc(func(v float64) {
+			metrics.ServerHttpRequestsDurationSeconds.WithLabelValues(c.Request.Method, s.srv.Addr, c.FullPath()).Observe(v)
+		})
 
 		timer := prometheus.NewTimer(observer)
 		defer timer.ObserveDuration()
 
-		metrics.ServerHttpRequestsTotal.WithLabelValues(c.Request.Method, s.srv.Addr, c.FullPath()).Inc()
-
 		c.Next()
+
+		metrics.ServerHttpRequestsTotal.WithLabelValues(c.Request.Method, s.srv.Addr, c.FullPath()).Inc()
 	})
 
 	return nil
