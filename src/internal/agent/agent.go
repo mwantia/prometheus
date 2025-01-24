@@ -123,6 +123,32 @@ func (a *PrometheusAgent) Serve(ctx context.Context) error {
 		}()
 	}
 
+	if a.Config.Telemetry.Enabled {
+		wg.Add(1)
+
+		otel := ops.OpenTelemetry{}
+		cleanup, err := otel.Create(a.Config, a.Registry)
+		if err != nil {
+			return fmt.Errorf("failed to create metrics: %w", err)
+		}
+
+		cleanups = append(cleanups, func() error {
+			shutdown, cncl := context.WithTimeout(context.Background(), 10*time.Second)
+			defer cncl()
+
+			return cleanup(shutdown)
+		})
+
+		go func() {
+			defer wg.Done()
+
+			a.Log.Debug("Serving telemetry...")
+			if err := otel.Serve(ctx); err != nil {
+				a.Log.Error("Error serving telemetry", "error", err)
+			}
+		}()
+	}
+
 	go a.Registry.Watch(ctx)
 
 	<-ctx.Done()

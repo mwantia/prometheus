@@ -7,11 +7,12 @@ type Config struct {
 	PluginDir    string   `hcl:"plugin_dir,optional"`
 	EmbedPlugins []string `hcl:"embed_plugins,optional"`
 
-	Server  *ServerConfig  `hcl:"server,block"`
-	Client  *ClientConfig  `hcl:"client,block"`
-	Metrics *MetricsConfig `hcl:"metrics,block"`
-	Redis   *RedisConfig   `hcl:"redis,block"`
-	Ollama  *OllamaConfig  `hcl:"ollama,block"`
+	Server    *ServerConfig    `hcl:"server,block"`
+	Client    *ClientConfig    `hcl:"client,block"`
+	Metrics   *MetricsConfig   `hcl:"metrics,block"`
+	Telemetry *TelemetryConfig `hcl:"telemetry,block"`
+	Redis     *RedisConfig     `hcl:"redis,block"`
+	Ollama    *OllamaConfig    `hcl:"ollama,block"`
 
 	Plugins []*PluginConfig `hcl:"plugin,block"`
 }
@@ -32,6 +33,11 @@ func CreateDefault() *Config {
 		Metrics: &MetricsConfig{
 			Enabled: true,
 			Address: "127.0.0.1:9001",
+		},
+		Telemetry: &TelemetryConfig{
+			Enabled:     false,
+			Endpoint:    "127.0.0.1:4318",
+			ServiceName: "prometheus",
 		},
 		Redis: &RedisConfig{
 			Endpoint: "127.0.0.1:6379",
@@ -73,6 +79,13 @@ func (c *Config) ValidateConfig() error {
 	}
 	if err := c.Metrics.ValidateConfig(); err != nil {
 		return fmt.Errorf("invalid 'metrics' block: %w", err)
+	}
+
+	if c.Telemetry == nil {
+		return fmt.Errorf("block 'telemetry' is required")
+	}
+	if err := c.Telemetry.ValidateConfig(); err != nil {
+		return fmt.Errorf("invalid 'telemetry' block: %w", err)
 	}
 
 	if c.Redis == nil {

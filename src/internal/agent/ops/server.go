@@ -7,6 +7,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 
 	"github.com/mwantia/prometheus/internal/agent/api"
 	"github.com/mwantia/prometheus/internal/config"
@@ -55,6 +58,19 @@ func (s *Server) Serve(ctx context.Context) error {
 
 func (s *Server) addMiddlewares() error {
 	s.engine.Use(func(c *gin.Context) {
+		_, span := otel.Tracer("github.com/mwantia/prometheus").Start(c.Request.Context(), "Serve",
+			trace.WithAttributes(
+				attribute.String("method", c.Request.Method),
+				attribute.String("addr", s.srv.Addr),
+				attribute.String("fullpath", c.FullPath()),
+			),
+			trace.WithSpanKind(trace.SpanKindServer),
+		)
+		defer span.End()
+
+		c.Next()
+	})
+	s.engine.Use(func(c *gin.Context) {
 		observer := metrics.ServerHttpRequestsDurationSeconds.WithLabelValues(c.Request.Method, s.srv.Addr, c.FullPath())
 
 		timer := prometheus.NewTimer(observer)
@@ -64,6 +80,7 @@ func (s *Server) addMiddlewares() error {
 
 		c.Next()
 	})
+
 	return nil
 }
 
