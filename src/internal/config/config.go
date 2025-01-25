@@ -4,6 +4,7 @@ import "fmt"
 
 type Config struct {
 	LogLevel     string   `hcl:"log_level,optional"`
+	PoolName     string   `hcl:"pool_name,optional"`
 	PluginDir    string   `hcl:"plugin_dir,optional"`
 	EmbedPlugins []string `hcl:"embed_plugins,optional"`
 
@@ -20,6 +21,7 @@ type Config struct {
 func CreateDefault() *Config {
 	return &Config{
 		LogLevel:     "INFO",
+		PoolName:     "default",
 		PluginDir:    "./plugins",
 		EmbedPlugins: make([]string, 0),
 
@@ -29,7 +31,6 @@ func CreateDefault() *Config {
 		},
 		Client: &ClientConfig{
 			Enabled: true,
-			Queues:  []string{"high", "normal", "low"},
 		},
 		Metrics: &MetricsConfig{
 			Enabled: true,

@@ -3,7 +3,7 @@ version: '3'
 env:
   DOCKER_REGISTRY: registry.wantia.app
   DOCKER_IMAGE: mwantia/prometheus
-  DOCKER_VERSION: v0.1.5
+  DOCKER_VERSION: v0.1.6
   DOCKER_PLATFORMS: linux/amd64,linux/arm64
 
 tasks:

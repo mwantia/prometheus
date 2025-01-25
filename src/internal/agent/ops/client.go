@@ -2,7 +2,6 @@ package ops
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/hibiken/asynq"
 	"github.com/mwantia/prometheus/internal/config"
@@ -20,11 +19,6 @@ type Client struct {
 }
 
 func (c *Client) Create(cfg *config.Config, reg *registry.PluginRegistry) (Cleanup, error) {
-	queues, err := validateAndConvertQueues(cfg.Client.Queues)
-	if err != nil {
-		return nil, fmt.Errorf("error validating or converting queues: %w", err)
-	}
-
 	c.Log = *log.New("client")
 	c.mux = asynq.NewServeMux()
 	c.srv = asynq.NewServer(asynq.RedisClientOpt{
@@ -33,10 +27,12 @@ func (c *Client) Create(cfg *config.Config, reg *registry.PluginRegistry) (Clean
 		Password: cfg.Redis.Password,
 	}, asynq.Config{
 		Concurrency: 1,
-		Queues:      queues,
+		Queues: map[string]int{
+			cfg.PoolName: 10,
+		},
 	})
 
-	c.mux.HandleFunc(tasks.TaskTypeGeneratePrompt, tasks.CreateGeneratePromptTask(cfg, reg))
+	c.mux.HandleFunc(tasks.TaskTypeGenerateName, tasks.CreateGenerateTaskHandler(cfg, reg))
 
 	return func(ctx context.Context) error {
 		c.srv.Shutdown()
@@ -46,23 +42,4 @@ func (c *Client) Create(cfg *config.Config, reg *registry.PluginRegistry) (Clean
 
 func (c *Client) Serve(ctx context.Context) error {
 	return c.srv.Run(c.mux)
-}
-
-func validateAndConvertQueues(queues []string) (map[string]int, error) {
-	valid := map[string]int{
-		"debug":  10,
-		"high":   7,
-		"normal": 2,
-		"low":    1,
-	}
-
-	result := make(map[string]int)
-	for _, queue := range queues {
-		if val, ok := valid[queue]; ok {
-			result[queue] = val
-		} else {
-			return nil, fmt.Errorf("invalid queue: %s", queue)
-		}
-	}
-	return result, nil
 }

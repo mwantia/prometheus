@@ -1,5 +1,6 @@
-log_level = "info"
-plugin_dir = "./plugins"
+log_level     = "info"
+pool_name     = "default"
+plugin_dir    = "./plugins"
 embed_plugins = []
 
 server {

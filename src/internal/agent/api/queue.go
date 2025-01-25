@@ -1,7 +1,6 @@
 package api
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -12,20 +11,6 @@ import (
 	"github.com/mwantia/prometheus/pkg/tasks"
 )
 
-type GeneratePromptRequest struct {
-	Prompt string `json:"prompt"`
-	Model  string `json:"model,omitempty"`
-	Queue  string `json:"queue,omitempty"`
-	Style  string `json:"style,omitempty"`
-}
-
-type GeneratePromptResponse struct {
-	TaskID string `json:"taskid"`
-	State  string `json:"state"`
-	Queue  string `json:"queue"`
-	Result string `json:"result,omitempty"`
-}
-
 func HandleGetQueueTask(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		inspector := asynq.NewInspector(asynq.RedisClientOpt{
@@ -35,22 +20,21 @@ func HandleGetQueueTask(cfg *config.Config) gin.HandlerFunc {
 		})
 		defer inspector.Close()
 
-		queue := c.DefaultQuery("queue", "default")
-		taskid := c.Param("taskid")
+		task := c.Param("task")
 
-		info, err := inspector.GetTaskInfo(queue, taskid)
+		info, err := inspector.GetTaskInfo(cfg.PoolName, task)
 		if err != nil {
 			switch err.Error() {
 			case "asynq: queue not found":
 				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
-					"queue": queue,
+					"pool":  cfg.PoolName,
 					"error": "Queue not found",
 				})
 			case "asynq: task not found":
 				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
-					"queue":  queue,
-					"taskid": taskid,
-					"error":  "Task not found",
+					"pool":  cfg.PoolName,
+					"task":  task,
+					"error": "Task not found",
 				})
 			default:
 				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -61,12 +45,7 @@ func HandleGetQueueTask(cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, GeneratePromptResponse{
-			TaskID: info.ID,
-			State:  info.State.String(),
-			Queue:  info.Queue,
-			Result: string(info.Result),
-		})
+		c.JSON(http.StatusOK, tasks.CreateGenerateResponse(info))
 	}
 }
 
@@ -79,10 +58,9 @@ func HandleIsQueueTaskDone(cfg *config.Config) gin.HandlerFunc {
 		})
 		defer inspector.Close()
 
-		queue := c.DefaultQuery("queue", "default")
-		taskid := c.Param("taskid")
+		task := c.Param("task")
 
-		info, err := inspector.GetTaskInfo(queue, taskid)
+		info, err := inspector.GetTaskInfo(cfg.PoolName, task)
 		if err != nil {
 			switch err.Error() {
 			case "asynq: queue not found":
@@ -122,15 +100,13 @@ func HandleGetQueue(cfg *config.Config) gin.HandlerFunc {
 		})
 		defer inspector.Close()
 
-		queue := c.DefaultQuery("queue", "default")
-
-		infos, err := inspector.ListCompletedTasks(queue)
+		infos, err := inspector.ListCompletedTasks(cfg.PoolName)
 		if err != nil {
 			switch err.Error() {
 			case "asynq: queue not found":
 				c.AbortWithStatusJSON(http.StatusNotFound, gin.H{
-					"queue": queue,
-					"error": "Queue not found",
+					"pool":  cfg.PoolName,
+					"error": "Pool not found",
 				})
 			default:
 				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
@@ -141,14 +117,9 @@ func HandleGetQueue(cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
-		res := make([]GeneratePromptResponse, 0)
+		res := make([]tasks.GenerateResponse, 0)
 		for _, info := range infos {
-			res = append(res, GeneratePromptResponse{
-				TaskID: info.ID,
-				State:  info.State.String(),
-				Queue:  info.Queue,
-				Result: string(info.Result),
-			})
+			res = append(res, tasks.CreateGenerateResponse(info))
 		}
 
 		c.JSON(http.StatusOK, res)
@@ -157,16 +128,13 @@ func HandleGetQueue(cfg *config.Config) gin.HandlerFunc {
 
 func HandlePostQueue(cfg *config.Config) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		var request GeneratePromptRequest
-		if err := c.BindJSON(&request); err != nil {
+		var req tasks.GenerateRequest
+
+		if err := c.BindJSON(&req); err != nil {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"error": fmt.Sprintf("Unable to decode body: %v", err),
 			})
 			return
-		}
-
-		if request.Queue == "" {
-			request.Queue = "normal"
 		}
 
 		client := asynq.NewClient(asynq.RedisClientOpt{
@@ -176,22 +144,17 @@ func HandlePostQueue(cfg *config.Config) gin.HandlerFunc {
 		})
 		defer client.Close()
 
-		prompt, err := json.Marshal(tasks.GeneratePrompt{
-			Content: request.Prompt,
-			Model:   request.Model,
-			Style:   request.Style,
-		})
+		t, err := tasks.CreateGenerateTask(req)
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
-				"error": fmt.Sprintf("Unable to marshal data: %v", err),
+				"error": fmt.Sprintf("Unable to create task: %v", err),
 			})
-			return
 		}
 
-		task := asynq.NewTask(tasks.TaskTypeGeneratePrompt, prompt)
-		taskid := fmt.Sprintf("t%d", time.Now().UnixNano())
+		ctx := c.Request.Context()
+		task := tasks.GenerateTaskId()
 
-		info, err := client.EnqueueContext(c.Request.Context(), task, asynq.Queue(request.Queue), asynq.TaskID(taskid), asynq.Retention(7*24*time.Hour))
+		info, err := client.EnqueueContext(ctx, t, asynq.Queue(cfg.PoolName), asynq.TaskID(task), asynq.Retention(7*24*time.Hour))
 		if err != nil {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"error": fmt.Sprintf("Unable to enqueue task: %v", err),
@@ -199,10 +162,6 @@ func HandlePostQueue(cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, GeneratePromptResponse{
-			TaskID: info.ID,
-			State:  info.State.String(),
-			Queue:  info.Queue,
-		})
+		c.JSON(http.StatusOK, tasks.CreateGenerateResponse(info))
 	}
 }
