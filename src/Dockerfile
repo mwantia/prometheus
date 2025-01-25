@@ -17,7 +17,7 @@ FROM alpine:3.20.3
 ARG TARGETOS
 ARG TARGETARCH
 # Install required packages and manually update the local certificates
-RUN apk add --no-cache bash ca-certificates && update-ca-certificates
+RUN apk add --no-cache tzdata bash ca-certificates && update-ca-certificates
 # Copy executable from build
 COPY --from=gobuild /build/prometheus /prometheus
 # Expose port 8080 and 9001 by default
