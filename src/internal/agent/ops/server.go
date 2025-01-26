@@ -97,8 +97,8 @@ func (s *Server) addRoutes(cfg *config.Config, reg *registry.PluginRegistry) err
 	auth.GET("/services", api.HandleServices(reg))
 
 	auth.GET("/queue", api.HandleGetQueue(cfg))
-	auth.GET("/queue/:taskid", api.HandleGetQueueTask(cfg))
-	auth.HEAD("/queue/:taskid", api.HandleIsQueueTaskDone(cfg))
+	auth.GET("/queue/:task", api.HandleGetQueueTask(cfg))
+	auth.HEAD("/queue/:task", api.HandleIsQueueTaskDone(cfg))
 	auth.POST("/queue", api.HandlePostQueue(cfg))
 
 	return nil

@@ -14,7 +14,6 @@ import (
 	"github.com/mwantia/prometheus/internal/registry"
 	"github.com/mwantia/prometheus/pkg/log"
 	"github.com/mwantia/prometheus/pkg/ollama"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 const TaskTypeGenerateName = "task:generate"
@@ -29,20 +28,34 @@ type GenerateResponse struct {
 	Task   string `json:"task"`
 	State  string `json:"state"`
 	Pool   string `json:"pool"`
-	Result string `json:"result,omitempty"`
+	Result any    `json:"result,omitempty"`
+}
+
+type GenerateResult struct {
+	Text     string  `json:"text"`
+	Model    string  `json:"model,omitempty"`
+	Style    string  `json:"style,omitempty"`
+	Duration float64 `json:"duration,omitempty"`
 }
 
 func GenerateTaskId() string {
 	return fmt.Sprintf("t%d", time.Now().UnixNano())
 }
 
-func CreateGenerateResponse(info *asynq.TaskInfo) GenerateResponse {
-	return GenerateResponse{
+func CreateGenerateResponse(info *asynq.TaskInfo) (*GenerateResponse, error) {
+	var res any
+	if len(info.Result) > 0 {
+		if err := json.Unmarshal(info.Result, &res); err != nil {
+			return nil, fmt.Errorf("failed to unmarshal task response: %w", err)
+		}
+	}
+
+	return &GenerateResponse{
 		Task:   info.ID,
 		State:  info.State.String(),
 		Pool:   info.Queue,
-		Result: string(info.Result),
-	}
+		Result: res,
+	}, nil
 }
 
 func CreateGenerateTask(req GenerateRequest) (*asynq.Task, error) {
@@ -78,6 +91,8 @@ func handleGenerateTask(log *log.Logger, oc *ollama.Client, ts []ollama.Tool) fu
 	return func(ctx context.Context, t *asynq.Task) error {
 		var req GenerateRequest
 
+		startTime := time.Now()
+
 		if err := json.Unmarshal(t.Payload(), &req); err != nil {
 			return fmt.Errorf("failed to unmarshal payload: %w", err)
 		}
@@ -88,13 +103,6 @@ func handleGenerateTask(log *log.Logger, oc *ollama.Client, ts []ollama.Tool) fu
 		if req.Style == "" {
 			req.Style = string(oc.Style)
 		}
-
-		observer := prometheus.ObserverFunc(func(v float64) {
-			metrics.ClientGeneratePromptTasksDurationSeconds.WithLabelValues(oc.Endpoint, req.Model, req.Style).Observe(v)
-		})
-
-		timer := prometheus.NewTimer(observer)
-		defer timer.ObserveDuration()
 
 		log.Info("Handling generate task...", "model", req.Model, "prompt", req.Prompt)
 
@@ -134,9 +142,26 @@ func handleGenerateTask(log *log.Logger, oc *ollama.Client, ts []ollama.Tool) fu
 			return fmt.Errorf("failed chat tools: %w", err)
 		}
 
+		duration := time.Since(startTime).Seconds()
+
+		obs := metrics.ClientGeneratePromptTasksDurationSeconds.WithLabelValues(oc.Endpoint, req.Model, req.Style)
+		obs.Observe(duration)
+
+		result := GenerateResult{
+			Text:     text.String(),
+			Model:    req.Model,
+			Style:    req.Style,
+			Duration: duration,
+		}
+
 		log.Debug(text.String())
 
-		if _, err := fmt.Fprint(t.ResultWriter(), text.String()); err != nil {
+		data, err := json.Marshal(result)
+		if err != nil {
+			return fmt.Errorf("failed to marshal final response: %w", err)
+		}
+
+		if _, err := t.ResultWriter().Write(data); err != nil {
 			return fmt.Errorf("failed to write task result: %w", err)
 		}
 

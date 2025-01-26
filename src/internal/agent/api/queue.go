@@ -45,7 +45,15 @@ func HandleGetQueueTask(cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, tasks.CreateGenerateResponse(info))
+		res, err := tasks.CreateGenerateResponse(info)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"error": fmt.Sprintf("Unable to create response: %v", err),
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, res)
 	}
 }
 
@@ -117,12 +125,20 @@ func HandleGetQueue(cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
-		res := make([]tasks.GenerateResponse, 0)
+		results := make([]tasks.GenerateResponse, 0)
 		for _, info := range infos {
-			res = append(res, tasks.CreateGenerateResponse(info))
+			res, err := tasks.CreateGenerateResponse(info)
+			if err != nil {
+				c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+					"error": fmt.Sprintf("Unable to create response: %v", err),
+				})
+				return
+			}
+
+			results = append(results, *res)
 		}
 
-		c.JSON(http.StatusOK, res)
+		c.JSON(http.StatusOK, results)
 	}
 }
 
@@ -162,6 +178,14 @@ func HandlePostQueue(cfg *config.Config) gin.HandlerFunc {
 			return
 		}
 
-		c.JSON(http.StatusOK, tasks.CreateGenerateResponse(info))
+		res, err := tasks.CreateGenerateResponse(info)
+		if err != nil {
+			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
+				"error": fmt.Sprintf("Unable to create response: %v", err),
+			})
+			return
+		}
+
+		c.JSON(http.StatusOK, res)
 	}
 }
