@@ -12,15 +12,15 @@ tasks:
     cmds:
       - go mod download
       - go mod tidy
-      - docker login ${DOCKER_REGISTRY}
-      - docker buildx create --use --name multi-arch-builder || true
   build:
     dir: src
     cmds:
+      - task: setup
       - go build -o ./build/prometheus ./cmd/prometheus/main.go
   run:
     dir: src
     cmds:
+      - task: setup
       - go run cmd/prometheus/main.go agent --config ./tests/config.hcl
     ignore_error: true
 
@@ -28,4 +28,12 @@ tasks:
     dir: src
     cmds:
       - task: setup
+      - docker login ${DOCKER_REGISTRY}
+      - docker buildx create --use --name multi-arch-builder || true
       - docker buildx build --push --platform ${DOCKER_PLATFORMS} -t ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_VERSION} -t ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:latest .
+
+  analyse:
+    dir: src
+    cmds:
+      - task: build
+      - gsa ./build/prometheus --hide-sections
