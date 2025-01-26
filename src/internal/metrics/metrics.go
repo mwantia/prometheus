@@ -2,9 +2,10 @@ package metrics
 
 import (
 	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/collectors"
 )
 
-var MetricsNamespace = "ollama_queue"
+var MetricsNamespace = "queueverse"
 
 var (
 	ActivePluginsInfo = prometheus.NewGaugeVec(
@@ -25,13 +26,23 @@ var (
 	)
 )
 
-func init() {
-	prometheus.MustRegister(ActivePluginsInfo)
-	prometheus.MustRegister(ActiveServicesInfo)
-	prometheus.MustRegister(ServerHttpRequestsDurationSeconds)
-	prometheus.MustRegister(ServerHttpRequestsTotal)
-	prometheus.MustRegister(ClientGeneratePromptTasksDurationSeconds)
-	prometheus.MustRegister(ClientGeneratePromptTasksTotal)
+func Setup(pool string) (*prometheus.Registry, error) {
+	reg := prometheus.NewRegistry()
+	wrap := prometheus.WrapRegistererWith(prometheus.Labels{
+		"pool": pool,
+	}, reg)
+
+	wrap.MustRegister(collectors.NewGoCollector())
+	wrap.MustRegister(collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}))
+
+	wrap.MustRegister(ActivePluginsInfo)
+	wrap.MustRegister(ActiveServicesInfo)
+	wrap.MustRegister(ServerHttpRequestsDurationSeconds)
+	wrap.MustRegister(ServerHttpRequestsTotal)
+	wrap.MustRegister(ClientGeneratePromptTasksDurationSeconds)
+	wrap.MustRegister(ClientGeneratePromptTasksTotal)
+
+	return reg, nil
 }
 
 func RegisterActivePlugin(name, version, author string) {
