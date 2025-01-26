@@ -9,8 +9,10 @@ import (
 )
 
 type ChatRequest struct {
-	Model    string        `json:"model"`
-	Messages []ChatMessage `json:"messages"`
+	Model       string        `json:"model"`
+	Messages    []ChatMessage `json:"messages"`
+	KeepAlive   int           `json:"keep_alive"`
+	ContextSize int           `json:"context_size"`
 }
 
 type ChatResponse struct {
@@ -31,6 +33,9 @@ type ChatMessage struct {
 }
 
 func (c *Client) Chat(ctx context.Context, req ChatRequest, res ChatResponseHandler) error {
+	req.ContextSize = 8192
+	req.KeepAlive = -1
+
 	if err := c.addSystemStylePrompt(&req, struct{}{}); err != nil {
 		return fmt.Errorf("system style prompt error: %w", err)
 	}

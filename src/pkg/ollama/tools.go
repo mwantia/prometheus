@@ -67,10 +67,15 @@ func (c *Client) updateSystemTool(req *ChatRequest, data any) error {
 }
 
 func (c *Client) ChatTools(ctx context.Context, req ChatRequest, resHandler ChatResponseHandler, toolHandler ToolCallHandler, tools []Tool) error {
+	req.ContextSize = 8192
+	req.KeepAlive = -1
+
 	if err := c.stream(ctx, http.MethodPost, "/api/chat", struct {
-		Tools []Tool `json:"tools,omitempty"`
+		Tools  []Tool `json:"tools"`
+		Stream bool   `json:"stream"`
+
 		ChatRequest
-	}{Tools: tools, ChatRequest: req}, func(bts []byte) error {
+	}{Tools: tools, Stream: false, ChatRequest: req}, func(bts []byte) error {
 		// Received the tool response from Ollama
 		var resp ChatResponse
 		if err := json.Unmarshal(bts, &resp); err != nil {
