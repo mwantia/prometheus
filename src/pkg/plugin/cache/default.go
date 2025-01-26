@@ -1,7 +1,7 @@
 package cache
 
 import (
-	"github.com/mwantia/prometheus/pkg/plugin/setup"
+	"github.com/mwantia/queueverse/pkg/plugin/setup"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )

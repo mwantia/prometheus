@@ -4,9 +4,9 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/mwantia/prometheus/internal/config"
-	"github.com/mwantia/prometheus/internal/registry"
-	"github.com/mwantia/prometheus/pkg/log"
+	"github.com/mwantia/queueverse/internal/config"
+	"github.com/mwantia/queueverse/internal/registry"
+	"github.com/mwantia/queueverse/pkg/log"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 

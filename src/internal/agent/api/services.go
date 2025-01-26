@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mwantia/prometheus/internal/registry"
-	"github.com/mwantia/prometheus/pkg/plugin/identity"
+	"github.com/mwantia/queueverse/internal/registry"
+	"github.com/mwantia/queueverse/pkg/plugin/identity"
 )
 
 func HandleServices(reg *registry.PluginRegistry) gin.HandlerFunc {

@@ -1,9 +1,9 @@
 package essentials
 
 import (
-	"github.com/mwantia/prometheus/pkg/plugin"
-	"github.com/mwantia/prometheus/pkg/plugin/identity"
-	"github.com/mwantia/prometheus/pkg/plugin/tools"
+	"github.com/mwantia/queueverse/pkg/plugin"
+	"github.com/mwantia/queueverse/pkg/plugin/identity"
+	"github.com/mwantia/queueverse/pkg/plugin/tools"
 )
 
 type EssentialsIdentityService struct {

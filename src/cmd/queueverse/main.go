@@ -7,9 +7,9 @@ import (
 	"strings"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mwantia/prometheus/internal/agent"
-	"github.com/mwantia/prometheus/internal/config"
-	"github.com/mwantia/prometheus/pkg/log"
+	"github.com/mwantia/queueverse/internal/agent"
+	"github.com/mwantia/queueverse/internal/config"
+	"github.com/mwantia/queueverse/pkg/log"
 	"github.com/spf13/cobra"
 )
 
@@ -22,8 +22,8 @@ var Config *config.Config
 
 var (
 	Root = &cobra.Command{
-		Use:   "prometheus",
-		Short: "Prometheus document processing system",
+		Use:   "queueverse",
+		Short: "Ollama queue system and tool calling via plugin support",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := config.ParseConfig(ConfigFlag)
 			if err != nil {
@@ -49,14 +49,14 @@ var (
 	}
 	Agent = &cobra.Command{
 		Use:   "agent",
-		Short: "Run Prometheus agent",
+		Short: "Run QueueVerse agent",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			return agent.CreateNewAgent(Config).Serve(context.Background())
 		},
 	}
 	Plugin = &cobra.Command{
 		Use:   "plugin [name]",
-		Short: "Run embedded Prometheus plugin",
+		Short: "Run embedded QueueVerse plugin",
 		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if len(args) == 0 {

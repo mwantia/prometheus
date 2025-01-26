@@ -1,4 +1,4 @@
-module github.com/mwantia/prometheus
+module github.com/mwantia/queueverse
 
 go 1.23.4
 

@@ -7,8 +7,8 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/hibiken/asynq"
-	"github.com/mwantia/prometheus/internal/config"
-	"github.com/mwantia/prometheus/pkg/tasks"
+	"github.com/mwantia/queueverse/internal/config"
+	"github.com/mwantia/queueverse/pkg/tasks"
 )
 
 func HandleGetQueueTask(cfg *config.Config) gin.HandlerFunc {

@@ -9,11 +9,11 @@ import (
 	"time"
 
 	"github.com/hibiken/asynq"
-	"github.com/mwantia/prometheus/internal/config"
-	"github.com/mwantia/prometheus/internal/metrics"
-	"github.com/mwantia/prometheus/internal/registry"
-	"github.com/mwantia/prometheus/pkg/log"
-	"github.com/mwantia/prometheus/pkg/ollama"
+	"github.com/mwantia/queueverse/internal/config"
+	"github.com/mwantia/queueverse/internal/metrics"
+	"github.com/mwantia/queueverse/internal/registry"
+	"github.com/mwantia/queueverse/pkg/log"
+	"github.com/mwantia/queueverse/pkg/ollama"
 )
 
 const TaskTypeGenerateName = "task:generate"

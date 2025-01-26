@@ -1,9 +1,11 @@
 version: '3'
 
 env:
+  BUILD_PATH: ./build/queueverse
   DOCKER_REGISTRY: registry.wantia.app
-  DOCKER_IMAGE: mwantia/prometheus
-  DOCKER_VERSION: v0.1.7
+  DOCKER_IMAGE: mwantia/queueverse
+  DOCKER_VERSION: v0.0.1-alpha
+  DOCKER_LATEST: alpha
   DOCKER_PLATFORMS: linux/amd64,linux/arm64
 
 tasks:
@@ -16,12 +18,12 @@ tasks:
     dir: src
     cmds:
       - task: setup
-      - go build -o ./build/prometheus ./cmd/prometheus/main.go
+      - go build -o ${BUILD_PATH} ./cmd/queueverse/main.go
   run:
     dir: src
     cmds:
       - task: setup
-      - go run cmd/prometheus/main.go agent --config ./tests/config.hcl
+      - go run cmd/queueverse/main.go agent --config ./tests/config.hcl
     ignore_error: true
 
   release:
@@ -30,10 +32,10 @@ tasks:
       - task: setup
       - docker login ${DOCKER_REGISTRY}
       - docker buildx create --use --name multi-arch-builder || true
-      - docker buildx build --push --platform ${DOCKER_PLATFORMS} -t ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_VERSION} -t ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:latest .
+      - docker buildx build --push --platform ${DOCKER_PLATFORMS} -t ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_VERSION} -t ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_LATEST} .
 
   analyse:
     dir: src
     cmds:
       - task: build
-      - gsa ./build/prometheus --hide-sections
+      - gsa ${BUILD_PATH} --hide-sections

@@ -9,7 +9,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/mwantia/prometheus/internal/config"
+	"github.com/mwantia/queueverse/internal/config"
 )
 
 var text strings.Builder

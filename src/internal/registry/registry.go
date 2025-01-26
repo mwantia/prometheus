@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/mwantia/prometheus/pkg/plugin/identity"
-	"github.com/mwantia/prometheus/pkg/plugin/tools"
+	"github.com/mwantia/queueverse/pkg/plugin/identity"
+	"github.com/mwantia/queueverse/pkg/plugin/tools"
 )
 
 type PluginRegistry struct {

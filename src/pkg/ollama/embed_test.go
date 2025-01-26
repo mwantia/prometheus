@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/mwantia/prometheus/internal/config"
+	"github.com/mwantia/queueverse/internal/config"
 )
 
 func TestEmbed(tst *testing.T) {

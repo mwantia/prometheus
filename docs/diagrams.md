@@ -34,7 +34,7 @@ sequenceDiagram
     participant S as Server
     participant R as Redis
 
-    C->>+S: GET /v1/query?taskid=xyz
+    C->>+S: GET /v1/query/:task
     S->>+R: Fetch Task
     R-->>-S: Return Task Result
     

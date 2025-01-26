@@ -2,9 +2,9 @@ package plugin
 
 import (
 	"github.com/hashicorp/go-plugin"
-	"github.com/mwantia/prometheus/pkg/plugin/cache"
-	"github.com/mwantia/prometheus/pkg/plugin/identity"
-	"github.com/mwantia/prometheus/pkg/plugin/tools"
+	"github.com/mwantia/queueverse/pkg/plugin/cache"
+	"github.com/mwantia/queueverse/pkg/plugin/identity"
+	"github.com/mwantia/queueverse/pkg/plugin/tools"
 )
 
 var Handshake = plugin.HandshakeConfig{

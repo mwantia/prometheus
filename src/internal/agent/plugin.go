@@ -6,13 +6,13 @@ import (
 	"os/exec"
 
 	goplugin "github.com/hashicorp/go-plugin"
-	"github.com/mwantia/prometheus/internal/metrics"
-	"github.com/mwantia/prometheus/internal/plugin/essentials"
-	"github.com/mwantia/prometheus/internal/registry"
-	"github.com/mwantia/prometheus/pkg/plugin"
-	"github.com/mwantia/prometheus/pkg/plugin/cache"
-	"github.com/mwantia/prometheus/pkg/plugin/identity"
-	"github.com/mwantia/prometheus/pkg/plugin/tools"
+	"github.com/mwantia/queueverse/internal/metrics"
+	"github.com/mwantia/queueverse/internal/plugin/essentials"
+	"github.com/mwantia/queueverse/internal/registry"
+	"github.com/mwantia/queueverse/pkg/plugin"
+	"github.com/mwantia/queueverse/pkg/plugin/cache"
+	"github.com/mwantia/queueverse/pkg/plugin/identity"
+	"github.com/mwantia/queueverse/pkg/plugin/tools"
 )
 
 var Plugins = map[string]PluginServe{

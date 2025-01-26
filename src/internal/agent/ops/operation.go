@@ -3,8 +3,8 @@ package ops
 import (
 	"context"
 
-	"github.com/mwantia/prometheus/internal/config"
-	"github.com/mwantia/prometheus/internal/registry"
+	"github.com/mwantia/queueverse/internal/config"
+	"github.com/mwantia/queueverse/internal/registry"
 )
 
 type Operation interface {

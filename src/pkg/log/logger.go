@@ -21,7 +21,7 @@ type Logger struct {
 
 func Setup(level string, nc bool) error {
 	Default = hclog.New(&hclog.LoggerOptions{
-		Name:        "prometheus",
+		Name:        "queueverse",
 		Level:       parseLevel(level),
 		Output:      os.Stdout,
 		JSONFormat:  false,

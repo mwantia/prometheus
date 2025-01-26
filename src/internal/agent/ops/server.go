@@ -11,11 +11,11 @@ import (
 	"go.opentelemetry.io/otel/attribute"
 	"go.opentelemetry.io/otel/trace"
 
-	"github.com/mwantia/prometheus/internal/agent/api"
-	"github.com/mwantia/prometheus/internal/config"
-	"github.com/mwantia/prometheus/internal/metrics"
-	"github.com/mwantia/prometheus/internal/registry"
-	"github.com/mwantia/prometheus/pkg/log"
+	"github.com/mwantia/queueverse/internal/agent/api"
+	"github.com/mwantia/queueverse/internal/config"
+	"github.com/mwantia/queueverse/internal/metrics"
+	"github.com/mwantia/queueverse/internal/registry"
+	"github.com/mwantia/queueverse/pkg/log"
 )
 
 type Server struct {
@@ -58,7 +58,7 @@ func (s *Server) Serve(ctx context.Context) error {
 
 func (s *Server) addMiddlewares() error {
 	s.engine.Use(func(c *gin.Context) {
-		_, span := otel.Tracer("github.com/mwantia/prometheus").Start(c.Request.Context(), "Serve",
+		_, span := otel.Tracer("github.com/mwantia/queueverse").Start(c.Request.Context(), "Serve",
 			trace.WithAttributes(
 				attribute.String("method", c.Request.Method),
 				attribute.String("addr", s.srv.Addr),

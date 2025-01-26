@@ -5,7 +5,7 @@ import (
 	"log"
 	"time"
 
-	"github.com/mwantia/prometheus/pkg/plugin/tools"
+	"github.com/mwantia/queueverse/pkg/plugin/tools"
 )
 
 type GetCurrentTimeTool struct {

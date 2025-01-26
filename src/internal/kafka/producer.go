@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/mwantia/prometheus/pkg/msg"
+	"github.com/mwantia/queueverse/pkg/msg"
 	"github.com/segmentio/kafka-go"
 )
 

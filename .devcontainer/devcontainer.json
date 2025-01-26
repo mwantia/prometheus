@@ -5,6 +5,7 @@
     "workspaceFolder": "/workspace",
     "remoteUser": "vscode",
     "forwardPorts": [
+        "redis:6379",
         "victoriametrics:8428"
     ],
     "containerUser": "vscode",

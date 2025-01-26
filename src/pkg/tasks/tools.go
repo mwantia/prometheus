@@ -1,8 +1,8 @@
 package tasks
 
 import (
-	"github.com/mwantia/prometheus/pkg/ollama"
-	"github.com/mwantia/prometheus/pkg/plugin/tools"
+	"github.com/mwantia/queueverse/pkg/ollama"
+	"github.com/mwantia/queueverse/pkg/plugin/tools"
 )
 
 func convertToolService(service tools.ToolService) {

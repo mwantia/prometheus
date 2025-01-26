@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/mwantia/prometheus/internal/registry"
+	"github.com/mwantia/queueverse/internal/registry"
 )
 
 type Health struct {

@@ -5,9 +5,9 @@ import (
 	"log"
 
 	"github.com/hashicorp/go-plugin"
-	"github.com/mwantia/prometheus/pkg/plugin/cache"
-	"github.com/mwantia/prometheus/pkg/plugin/identity"
-	"github.com/mwantia/prometheus/pkg/plugin/tools"
+	"github.com/mwantia/queueverse/pkg/plugin/cache"
+	"github.com/mwantia/queueverse/pkg/plugin/identity"
+	"github.com/mwantia/queueverse/pkg/plugin/tools"
 )
 
 func ServeTools(is identity.IdentityService, services []tools.ToolService) error {

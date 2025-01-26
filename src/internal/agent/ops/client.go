@@ -4,10 +4,10 @@ import (
 	"context"
 
 	"github.com/hibiken/asynq"
-	"github.com/mwantia/prometheus/internal/config"
-	"github.com/mwantia/prometheus/internal/registry"
-	"github.com/mwantia/prometheus/pkg/log"
-	"github.com/mwantia/prometheus/pkg/tasks"
+	"github.com/mwantia/queueverse/internal/config"
+	"github.com/mwantia/queueverse/internal/registry"
+	"github.com/mwantia/queueverse/pkg/log"
+	"github.com/mwantia/queueverse/pkg/tasks"
 )
 
 type Client struct {
