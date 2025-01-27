@@ -23,7 +23,7 @@ type Metrics struct {
 }
 
 func (m *Metrics) Create(cfg *config.Config, reg *registry.PluginRegistry) (Cleanup, error) {
-	m.Log = *log.New("metrics")
+	m.Log = log.New("metrics")
 	m.mux = http.NewServeMux()
 	m.srv = &http.Server{
 		Addr:    cfg.Metrics.Address,

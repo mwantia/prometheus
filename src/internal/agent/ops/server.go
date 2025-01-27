@@ -7,9 +7,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
-	"go.opentelemetry.io/otel"
-	"go.opentelemetry.io/otel/attribute"
-	"go.opentelemetry.io/otel/trace"
 
 	"github.com/mwantia/queueverse/internal/agent/api"
 	"github.com/mwantia/queueverse/internal/config"
@@ -27,7 +24,7 @@ type Server struct {
 }
 
 func (s *Server) Create(cfg *config.Config, reg *registry.PluginRegistry) (Cleanup, error) {
-	s.Log = *log.New("server")
+	s.Log = log.New("server")
 	s.engine = gin.Default()
 	s.srv = &http.Server{
 		Addr:    cfg.Server.Address,
@@ -57,19 +54,6 @@ func (s *Server) Serve(ctx context.Context) error {
 }
 
 func (s *Server) addMiddlewares() error {
-	s.engine.Use(func(c *gin.Context) {
-		_, span := otel.Tracer("github.com/mwantia/queueverse").Start(c.Request.Context(), "Serve",
-			trace.WithAttributes(
-				attribute.String("method", c.Request.Method),
-				attribute.String("addr", s.srv.Addr),
-				attribute.String("fullpath", c.FullPath()),
-			),
-			trace.WithSpanKind(trace.SpanKindServer),
-		)
-		defer span.End()
-
-		c.Next()
-	})
 	s.engine.Use(func(c *gin.Context) {
 		observer := prometheus.ObserverFunc(func(v float64) {
 			metrics.ServerHttpRequestsDurationSeconds.WithLabelValues(c.Request.Method, s.srv.Addr, c.FullPath()).Observe(v)

@@ -87,7 +87,7 @@ func CreateGenerateTaskHandler(cfg *config.Config, reg *registry.PluginRegistry)
 	return handleGenerateTask(log, oc, ts)
 }
 
-func handleGenerateTask(log *log.Logger, oc *ollama.Client, ts []ollama.Tool) func(context.Context, *asynq.Task) error {
+func handleGenerateTask(log log.Logger, oc *ollama.Client, ts []ollama.Tool) func(context.Context, *asynq.Task) error {
 	return func(ctx context.Context, t *asynq.Task) error {
 		var req GenerateRequest
 

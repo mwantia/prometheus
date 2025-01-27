@@ -19,7 +19,7 @@ type Client struct {
 }
 
 func (c *Client) Create(cfg *config.Config, reg *registry.PluginRegistry) (Cleanup, error) {
-	c.Log = *log.New("client")
+	c.Log = log.New("client")
 	c.mux = asynq.NewServeMux()
 	c.srv = asynq.NewServer(asynq.RedisClientOpt{
 		Addr:     cfg.Redis.Endpoint,

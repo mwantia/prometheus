@@ -1,60 +1,37 @@
 package log
 
 import (
-	"io"
-	"log"
-	"os"
-	"strings"
-
 	"github.com/hashicorp/go-hclog"
+	"github.com/mwantia/queueverse/internal/log"
 )
 
-var Default hclog.Logger
+type Logger interface {
+	Info(msg string, args ...interface{})
+	Debug(msg string, args ...interface{})
+	Error(msg string, args ...interface{})
+	Warn(msg string, args ...interface{})
+	Trace(msg string, args ...interface{})
 
-type HighlightFormatter struct {
-	NoColor bool `bool:"no_color"`
+	Named(name string) Logger
 }
 
-type Logger struct {
+type loggerImpl struct {
 	hclog.Logger
 }
 
-func Setup(level string, nc bool) error {
-	Default = hclog.New(&hclog.LoggerOptions{
-		Name:        "queueverse",
-		Level:       parseLevel(level),
-		Output:      os.Stdout,
-		JSONFormat:  false,
-		Color:       hclog.AutoColor,
-		TimeFormat:  "02.01.2006 15:04:05",
-		DisableTime: false,
-	})
-
-	log.SetOutput(io.Discard)
-	hclog.SetDefault(Default)
-
-	return nil
-}
-
-func New(name string) *Logger {
-	return &Logger{
-		Logger: Default.Named(name),
+func (l *loggerImpl) Named(name string) Logger {
+	return &loggerImpl{
+		Logger: l.Logger.Named(name),
 	}
 }
 
-func parseLevel(level string) hclog.Level {
-	switch strings.ToUpper(level) {
-	case "TRACE":
-		return hclog.Trace
-	case "DEBUG":
-		return hclog.Debug
-	case "INFO":
-		return hclog.Info
-	case "WARN":
-		return hclog.Warn
-	case "ERROR":
-		return hclog.Error
-	default:
-		return hclog.Info
+func New(name string) Logger {
+	def := log.GetDefaultLogger()
+	if def == nil {
+		panic("Logger is not initialized.")
+	}
+
+	return &loggerImpl{
+		Logger: def.Named(name),
 	}
 }

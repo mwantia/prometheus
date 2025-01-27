@@ -1,5 +1,5 @@
 {
-    "name": "CoreDNS Plugin Development",
+    "name": "QueueVerse",
     "dockerComposeFile": "compose.yml",
     "service": "devcontainer",
     "workspaceFolder": "/workspace",

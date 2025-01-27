@@ -9,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/mwantia/queueverse/internal/agent"
 	"github.com/mwantia/queueverse/internal/config"
-	"github.com/mwantia/queueverse/pkg/log"
+	setuplog "github.com/mwantia/queueverse/internal/log"
 	"github.com/spf13/cobra"
 )
 
@@ -34,7 +34,7 @@ var (
 				return fmt.Errorf("unable to validate config: %w", err)
 			}
 
-			if err := log.Setup(cfg.LogLevel, NoColorFlag); err != nil {
+			if err := setuplog.Setup(cfg.LogLevel); err != nil {
 				return fmt.Errorf("unable to setup logging: %w", err)
 			}
 
