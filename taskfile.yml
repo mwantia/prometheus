@@ -4,30 +4,26 @@ env:
   BUILD_PATH: ./build/queueverse
   DOCKER_REGISTRY: registry.wantia.app
   DOCKER_IMAGE: mwantia/queueverse
-  DOCKER_VERSION: v0.0.2-alpha
+  DOCKER_VERSION: v0.0.3-alpha
   DOCKER_LATEST: alpha
   DOCKER_PLATFORMS: linux/amd64,linux/arm64
 
 tasks:
   setup:
-    dir: src
     cmds:
       - go mod download
       - go mod tidy
   build:
-    dir: src
     cmds:
       - task: setup
       - go build -o ${BUILD_PATH} ./cmd/queueverse/main.go
   run:
-    dir: src
     cmds:
       - task: setup
       - go run cmd/queueverse/main.go agent --config ./tests/config.hcl
     ignore_error: true
 
   release:
-    dir: src
     cmds:
       - task: setup
       - docker login ${DOCKER_REGISTRY}
@@ -35,7 +31,6 @@ tasks:
       - docker buildx build --push --platform ${DOCKER_PLATFORMS} -t ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_VERSION} -t ${DOCKER_REGISTRY}/${DOCKER_IMAGE}:${DOCKER_LATEST} .
 
   analyse:
-    dir: src
     cmds:
       - task: build
       - gsa ${BUILD_PATH} --hide-sections
