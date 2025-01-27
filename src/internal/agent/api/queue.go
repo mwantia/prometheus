@@ -84,10 +84,8 @@ func HandleIsQueueTaskDone(cfg *config.Config) gin.HandlerFunc {
 
 		c.Status(func() int {
 			switch info.State {
-			case asynq.TaskStatePending, asynq.TaskStateScheduled:
+			case asynq.TaskStateActive, asynq.TaskStateRetry, asynq.TaskStatePending, asynq.TaskStateScheduled:
 				return http.StatusAccepted
-			case asynq.TaskStateActive, asynq.TaskStateRetry:
-				return http.StatusProcessing
 			case asynq.TaskStateArchived:
 				return http.StatusGone
 			case asynq.TaskStateCompleted:
