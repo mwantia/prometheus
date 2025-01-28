@@ -1,63 +1,68 @@
 package plugin
 
 import (
+	"context"
 	"fmt"
-	"log"
+	"os"
 
-	"github.com/hashicorp/go-plugin"
-	"github.com/mwantia/queueverse/pkg/plugin/cache"
-	"github.com/mwantia/queueverse/pkg/plugin/identity"
+	"github.com/mwantia/queueverse/pkg/plugin/provider"
 	"github.com/mwantia/queueverse/pkg/plugin/tools"
 )
 
-func ServeTools(is identity.IdentityService, services []tools.ToolService) error {
-	plugins := map[string]plugin.Plugin{
-		"identity": &identity.IdentityPlugin{
-			Service: is,
-		},
-	}
+type PluginFactory func() interface{}
 
-	info, err := is.GetPluginInfo()
-	if err != nil {
-		return fmt.Errorf("error getting plugin info: %w", err)
-	}
+type PluginFactoryMuxMap map[string]PluginFactory
 
-	for index, service := range services {
-		name, _ := service.GetName()
-		_, exist := identity.GetPluginServiceInfo(name, info.Services)
-		if !exist {
-			return fmt.Errorf("error receiving tool '%s'", name)
-		}
+type PluginContextFactory func(ctx context.Context) interface{}
 
-		key := fmt.Sprintf("tool.%v", index)
+type PluginContextFactoryMuxMap map[string]PluginContextFactory
 
-		plugins[key] = &tools.ToolPlugin{
-			Service: service,
-		}
-	}
-
-	plugin.Serve(&plugin.ServeConfig{
-		HandshakeConfig: Handshake,
-		Plugins:         plugins,
-	})
-	return nil
+func Serve(pf PluginFactory) error {
+	plugin := pf()
+	return servePlugin(plugin)
 }
 
-func ServePlugin(i identity.IdentityService, c cache.CacheService) error {
-	info, _ := i.GetPluginInfo()
-	log.Printf("Serving plugin: %s", info.Name)
+func ServeMux(mux PluginFactoryMuxMap) error {
+	if len(os.Args) != 2 {
+		return fmt.Errorf("only one additional argument expected for 'os.Args'")
+	}
+	pf, ok := mux[os.Args[1]]
+	if !ok {
+		return fmt.Errorf("unknown plugin: %s", os.Args[1])
+	}
 
-	plugin.Serve(&plugin.ServeConfig{
-		HandshakeConfig: Handshake,
-		Plugins: map[string]plugin.Plugin{
-			"identity": &identity.IdentityPlugin{
-				Service: i,
-			},
-			"cache": &cache.CachePlugin{
-				Impl: c,
-			},
-		},
-	})
+	return Serve(pf)
+}
 
-	return nil
+func ServeContext(pcf PluginContextFactory) error {
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	plugin := pcf(ctx)
+	return servePlugin(plugin)
+}
+
+func ServeContextMux(mux PluginContextFactoryMuxMap) error {
+	if len(os.Args) != 2 {
+		return fmt.Errorf("only one additional argument expected for 'os.Args'")
+	}
+	pf, ok := mux[os.Args[1]]
+	if !ok {
+		return fmt.Errorf("unknown plugin: %s", os.Args[1])
+	}
+
+	return ServeContext(pf)
+}
+
+func servePlugin(plugin interface{}) error {
+	return func() error {
+		switch impl := plugin.(type) {
+		case provider.Provider:
+			return provider.Serve(impl)
+		case tools.ToolService:
+			return nil
+		default:
+			return fmt.Errorf("unsupported plugin type")
+		}
+	}()
 }

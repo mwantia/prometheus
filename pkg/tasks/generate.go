@@ -72,18 +72,6 @@ func CreateGenerateTaskHandler(cfg *config.Config, reg *registry.PluginRegistry)
 	ts := createTools()
 	log := log.New("asynq")
 
-	ps := reg.GetPlugins()
-	for _, p := range ps {
-		info, err := p.Services.Identity.GetPluginInfo()
-		if err != nil {
-			log.Error("Unable to load plugin info", "name", p.Name)
-		}
-
-		for _, s := range info.Services {
-			log.Debug("Processing service...", "name", s.Name)
-		}
-	}
-
 	return handleGenerateTask(log, oc, ts)
 }
 

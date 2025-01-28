@@ -6,13 +6,8 @@ import (
 	"os/exec"
 
 	goplugin "github.com/hashicorp/go-plugin"
-	"github.com/mwantia/queueverse/internal/metrics"
 	"github.com/mwantia/queueverse/internal/plugin/essentials"
-	"github.com/mwantia/queueverse/internal/registry"
 	"github.com/mwantia/queueverse/pkg/plugin"
-	"github.com/mwantia/queueverse/pkg/plugin/cache"
-	"github.com/mwantia/queueverse/pkg/plugin/identity"
-	"github.com/mwantia/queueverse/pkg/plugin/tools"
 )
 
 var Plugins = map[string]PluginServe{
@@ -88,7 +83,21 @@ func (a *Agent) RunLocalPlugin(path string, arg ...string) error {
 		return fmt.Errorf("failed to create rpc-client: %w", err)
 	}
 
-	raw, err := rpc.Dispense("identity")
+	r, err := rpc.Dispense("plugin")
+	if err != nil {
+		client.Kill()
+		return fmt.Errorf("failed to dispense 'plugin' from plugin: %w", err)
+	}
+	p := r.(plugin.Plugin)
+	ts, err := p.GetTools()
+	if err != nil {
+		client.Kill()
+		return fmt.Errorf("failed to dispense 'plugin' from plugin: %w", err)
+	}
+
+	a.Log.Debug("Tools", "map", ts)
+
+	/* raw, err := rpc.Dispense("identity")
 	if err != nil {
 		client.Kill()
 		return fmt.Errorf("failed to dispense 'identity' from plugin: %w", err)
@@ -160,6 +169,6 @@ func (a *Agent) RunLocalPlugin(path string, arg ...string) error {
 	}
 
 	a.Log.Info("Loaded new local plugin", "name", info.Name, "version", info.Version, "author", info.Author)
-
+	*/
 	return nil
 }

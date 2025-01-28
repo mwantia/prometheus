@@ -5,9 +5,6 @@ import (
 	"fmt"
 	"sync"
 	"time"
-
-	"github.com/mwantia/queueverse/pkg/plugin/identity"
-	"github.com/mwantia/queueverse/pkg/plugin/tools"
 )
 
 type PluginRegistry struct {
@@ -29,10 +26,7 @@ type PluginInfo struct {
 	Cleanup  PluginCleanup  `json:"-"`
 }
 
-type PluginServices struct {
-	Identity identity.IdentityService `json:"-"`
-	Tools    []tools.ToolService      `json:"-"`
-}
+type PluginServices struct{}
 
 type PluginCleanup func() error
 
@@ -51,7 +45,7 @@ func (r *PluginRegistry) Watch(ctx context.Context) {
 		for _, plugin := range plugins {
 			plugin.IsHealthy = true
 			//
-			for _, tool := range plugin.Services.Tools {
+			/* for _, tool := range plugin.Services.Tools {
 				if err := tool.Probe(); err != nil {
 					name, _ := tool.GetName()
 
@@ -60,7 +54,7 @@ func (r *PluginRegistry) Watch(ctx context.Context) {
 
 					continue
 				}
-			}
+			} */
 
 			if plugin.IsHealthy {
 				plugin.LastKnownError = nil
