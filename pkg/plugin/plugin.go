@@ -9,8 +9,8 @@ import (
 
 var Handshake = plugin.HandshakeConfig{
 	ProtocolVersion:  1,
-	MagicCookieKey:   "PROMETHEUS_PLUGIN",
-	MagicCookieValue: "prometheus",
+	MagicCookieKey:   "QUEUEVERSE_PLUGIN",
+	MagicCookieValue: "queueverse",
 }
 
 var PluginMap = map[string]plugin.Plugin{

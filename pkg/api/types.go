@@ -1,7 +1,7 @@
 package api
 
 const (
-	useragent = ""
+	useragent = "QueueVerse"
 )
 
 type ClientConfig struct {
