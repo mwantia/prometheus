@@ -8,3 +8,12 @@ services:
     command: ["--promscrape.config=/config/prometheus.yml"]
     volumes:
       - ./config/prometheus.yml:/config/prometheus.yml:ro
+  asynqmon:
+    image: platacard/asynqmon:latest
+    environment:
+      - REDIS_ADDR=redis:6379
+      - ENABLE_METRICS_EXPORTER=true
+      - PROMETHEUS_ADDR=victoriametrics:8428
+    depends_on:
+      - redis
+      - victoriametrics
