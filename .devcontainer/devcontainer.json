@@ -6,7 +6,8 @@
     "remoteUser": "vscode",
     "forwardPorts": [
         "redis:6379",
-        "victoriametrics:8428"
+        "victoriametrics:8428",
+        "asynqmon:8000"
     ],
     "containerUser": "vscode",
     "customizations": {
@@ -49,7 +50,7 @@
         },
         "ghcr.io/devcontainers/features/docker-in-docker:2": {}
     },
-    "postCreateCommand": "cd src && go mod download && go mod tidy && go install github.com/go-task/task/v3/cmd/task@latest && go install github.com/Zxilly/go-size-analyzer/cmd/gsa@latest",
+    "postCreateCommand": "go mod download && go mod tidy && go install github.com/go-task/task/v3/cmd/task@latest && go install github.com/Zxilly/go-size-analyzer/cmd/gsa@latest",
     "overrideCommand": true,
     "mounts": [
         "source=../,target=/workspace,type=bind",
