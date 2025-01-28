@@ -23,7 +23,7 @@ var Plugins = map[string]PluginServe{
 
 type PluginServe func() error
 
-func (a *PrometheusAgent) serveLocalPlugins() error {
+func (a *Agent) serveLocalPlugins() error {
 	files, err := os.ReadDir(a.Config.PluginDir)
 	if err != nil {
 		return fmt.Errorf("unable to read directory '%s': %v", a.Config.PluginDir, err)
@@ -41,7 +41,7 @@ func (a *PrometheusAgent) serveLocalPlugins() error {
 	return nil
 }
 
-func (a *PrometheusAgent) serveEmbedPlugins() error {
+func (a *Agent) serveEmbedPlugins() error {
 	for _, name := range a.Config.EmbedPlugins {
 		p, exists := Plugins[name]
 		if exists && p != nil {
@@ -57,7 +57,7 @@ func (a *PrometheusAgent) serveEmbedPlugins() error {
 	return nil
 }
 
-func (a *PrometheusAgent) RunEmbedPlugin(name string) error {
+func (a *Agent) RunEmbedPlugin(name string) error {
 	path, err := os.Executable()
 	if err != nil {
 		return nil
@@ -70,7 +70,7 @@ func (a *PrometheusAgent) RunEmbedPlugin(name string) error {
 	return nil
 }
 
-func (a *PrometheusAgent) RunLocalPlugin(path string, arg ...string) error {
+func (a *Agent) RunLocalPlugin(path string, arg ...string) error {
 	a.Mutex.Lock()
 	defer a.Mutex.Unlock()
 

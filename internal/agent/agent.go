@@ -15,22 +15,22 @@ import (
 	"github.com/mwantia/queueverse/pkg/log"
 )
 
-type PrometheusAgent struct {
+type Agent struct {
 	Mutex    sync.RWMutex
 	Log      log.Logger
 	Registry *registry.PluginRegistry
 	Config   *config.Config
 }
 
-func CreateNewAgent(c *config.Config) *PrometheusAgent {
-	return &PrometheusAgent{
+func CreateNewAgent(c *config.Config) *Agent {
+	return &Agent{
 		Log:      log.New("agent"),
 		Registry: registry.NewRegistry(),
 		Config:   c,
 	}
 }
 
-func (a *PrometheusAgent) Serve(ctx context.Context) error {
+func (a *Agent) Serve(ctx context.Context) error {
 	ctx, cancel := signal.NotifyContext(ctx, os.Interrupt)
 	defer cancel()
 
@@ -138,7 +138,7 @@ func (a *PrometheusAgent) Serve(ctx context.Context) error {
 	return a.Cleanup()
 }
 
-func (a *PrometheusAgent) Cleanup() error {
+func (a *Agent) Cleanup() error {
 	a.Mutex.Lock()
 	defer a.Mutex.Unlock()
 
