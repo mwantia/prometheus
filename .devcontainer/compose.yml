@@ -11,6 +11,7 @@ services:
   asynqmon:
     image: platacard/asynqmon:latest
     environment:
+      - PORT=8000
       - REDIS_ADDR=redis:6379
       - ENABLE_METRICS_EXPORTER=true
       - PROMETHEUS_ADDR=victoriametrics:8428
