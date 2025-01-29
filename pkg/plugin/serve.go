@@ -3,63 +3,45 @@ package plugin
 import (
 	"context"
 	"fmt"
-	"os"
 
+	hclog "github.com/hashicorp/go-hclog"
 	"github.com/mwantia/queueverse/pkg/plugin/provider"
 	"github.com/mwantia/queueverse/pkg/plugin/tools"
 )
 
-type PluginFactory func() interface{}
+type PluginFactory func(log hclog.Logger) interface{}
 
-type PluginFactoryMuxMap map[string]PluginFactory
-
-type PluginContextFactory func(ctx context.Context) interface{}
-
-type PluginContextFactoryMuxMap map[string]PluginContextFactory
+type PluginContextFactory func(ctx context.Context, log hclog.Logger) interface{}
 
 func Serve(pf PluginFactory) error {
-	plugin := pf()
-	return servePlugin(plugin)
-}
+	logger := hclog.New(&hclog.LoggerOptions{
+		Level:      hclog.Trace,
+		JSONFormat: true,
+	})
 
-func ServeMux(mux PluginFactoryMuxMap) error {
-	if len(os.Args) != 2 {
-		return fmt.Errorf("only one additional argument expected for 'os.Args'")
-	}
-	pf, ok := mux[os.Args[1]]
-	if !ok {
-		return fmt.Errorf("unknown plugin: %s", os.Args[1])
-	}
-
-	return Serve(pf)
+	plugin := pf(logger)
+	return servePlugin(plugin, logger)
 }
 
 func ServeContext(pcf PluginContextFactory) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	plugin := pcf(ctx)
-	return servePlugin(plugin)
+	logger := hclog.New(&hclog.LoggerOptions{
+		Level:      hclog.Trace,
+		JSONFormat: true,
+	})
+
+	plugin := pcf(ctx, logger)
+	return servePlugin(plugin, logger)
 }
 
-func ServeContextMux(mux PluginContextFactoryMuxMap) error {
-	if len(os.Args) != 2 {
-		return fmt.Errorf("only one additional argument expected for 'os.Args'")
-	}
-	pf, ok := mux[os.Args[1]]
-	if !ok {
-		return fmt.Errorf("unknown plugin: %s", os.Args[1])
-	}
-
-	return ServeContext(pf)
-}
-
-func servePlugin(plugin interface{}) error {
+func servePlugin(plugin interface{}, logger hclog.Logger) error {
 	return func() error {
 		switch impl := plugin.(type) {
-		case provider.Provider:
-			return provider.Serve(impl)
-		case tools.ToolService:
+		case provider.ProviderPlugin:
+			return provider.Serve(impl, logger)
+		case tools.ToolPlugin:
 			return nil
 		default:
 			return fmt.Errorf("unsupported plugin type")

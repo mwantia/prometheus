@@ -1,13 +1,13 @@
 package tools
 
-type ToolService interface {
-	GetName() (string, error)
+import "github.com/mwantia/queueverse/pkg/plugin/base"
+
+type ToolPlugin interface {
+	base.BasePlugin
 
 	GetParameters() (*ToolParameters, error)
 
 	Handle(ctx *ToolContext) error
-
-	Probe() error
 }
 
 type ToolParameters struct {

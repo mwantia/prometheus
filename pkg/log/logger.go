@@ -13,6 +13,8 @@ type Logger interface {
 	Trace(msg string, args ...interface{})
 
 	Named(name string) Logger
+
+	Impl() hclog.Logger
 }
 
 type loggerImpl struct {
@@ -23,6 +25,10 @@ func (l *loggerImpl) Named(name string) Logger {
 	return &loggerImpl{
 		Logger: l.Logger.Named(name),
 	}
+}
+
+func (l *loggerImpl) Impl() hclog.Logger {
+	return l.Logger
 }
 
 func New(name string) Logger {

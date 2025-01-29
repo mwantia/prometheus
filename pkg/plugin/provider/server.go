@@ -1,24 +1,17 @@
 package provider
 
-type RpcServer struct {
-	impl Provider
-}
+import "github.com/mwantia/queueverse/pkg/plugin/base"
 
-func (rs *RpcServer) Config(req map[string]any, resp *error) error {
-	*resp = rs.impl.Config(req)
-	return nil
+type RpcServer struct {
+	*base.RpcServer
+	Impl ProviderPlugin
 }
 
 func (rs *RpcServer) Chat(req ProviderChatRequest, resp *ProviderChatResponse) error {
-	dat, err := rs.impl.Chat(req)
+	dat, err := rs.Impl.Chat(req)
 	if err != nil {
 		return err
 	}
-	*resp = dat
-	return nil
-}
-
-func (rs *RpcServer) Probe(_ struct{}, resp *error) error {
-	*resp = rs.impl.Probe()
+	*resp = *dat
 	return nil
 }

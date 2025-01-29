@@ -1,14 +1,19 @@
 package base
 
-import "github.com/hashicorp/go-plugin"
+type BasePlugin interface {
+	GetPluginInfo() (*PluginInfo, error)
 
-type Base interface {
-	Config(map[string]any) error
+	SetConfig(*PluginConfig) error
 
-	Probe() error
+	ProbePlugin() error
 }
 
-type BaseImpl struct {
-	plugin.NetRPCUnsupportedPlugin
-	Impl Base
+type PluginInfo struct {
+	Type    string `json:"type"`
+	Name    string `json:"name"`
+	Version string `json:"version,omitempty"`
+}
+
+type PluginConfig struct {
+	ConfigMap map[string]interface{} `json:"-"`
 }

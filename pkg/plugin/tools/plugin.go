@@ -3,22 +3,45 @@ package tools
 import (
 	"net/rpc"
 
-	"github.com/hashicorp/go-plugin"
+	goplugin "github.com/hashicorp/go-plugin"
+	"github.com/mwantia/queueverse/pkg/plugin/base"
 )
 
-type ToolPlugin struct {
-	plugin.NetRPCUnsupportedPlugin
-	Service ToolService
+type ToolPluginImpl struct {
+	goplugin.NetRPCUnsupportedPlugin
+	Impl ToolPlugin
 }
 
-func (p *ToolPlugin) Server(*plugin.MuxBroker) (interface{}, error) {
+func Serve(plugin ToolPlugin) error {
+	goplugin.Serve(&goplugin.ServeConfig{
+		HandshakeConfig: base.Handshake,
+		Plugins: map[string]goplugin.Plugin{
+			base.PluginBaseType: &base.BasePluginImpl{
+				Impl: plugin,
+			},
+			base.PluginProviderType: &ToolPluginImpl{
+				Impl: plugin,
+			},
+		},
+		GRPCServer: goplugin.DefaultGRPCServer,
+	})
+	return nil
+}
+
+func (impl *ToolPluginImpl) Server(*goplugin.MuxBroker) (interface{}, error) {
 	return &RpcServer{
-		impl: p.Service,
+		Impl: impl.Impl,
+		RpcServer: &base.RpcServer{
+			Impl: impl.Impl,
+		},
 	}, nil
 }
 
-func (p *ToolPlugin) Client(b *plugin.MuxBroker, c *rpc.Client) (interface{}, error) {
+func (*ToolPluginImpl) Client(b *goplugin.MuxBroker, c *rpc.Client) (interface{}, error) {
 	return &RpcClient{
-		client: c,
+		Client: c,
+		RpcClient: &base.RpcClient{
+			Client: c,
+		},
 	}, nil
 }

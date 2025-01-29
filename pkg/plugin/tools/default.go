@@ -5,38 +5,20 @@ import (
 	"google.golang.org/grpc/status"
 )
 
-type DefaultNilService struct{}
+type UnimplementedToolPlugin struct{}
 
-func (s *DefaultNilService) GetName() (*string, error) {
-	return nil, nil
-}
-
-func (s *DefaultNilService) GetParameters() (ToolParameters, error) {
-	return ToolParameters{}, nil
-}
-
-func (s *DefaultNilService) Handle(ctx ToolContext) error {
-	return nil
-}
-
-func (d *DefaultNilService) Probe() error {
-	return nil
-}
-
-type DefaultUnimplementedService struct{}
-
-func (s *DefaultUnimplementedService) GetName() (*string, error) {
+func (*UnimplementedToolPlugin) GetName() (*string, error) {
 	return nil, status.Error(codes.Unimplemented, "Not implemented")
 }
 
-func (s *DefaultUnimplementedService) GetParameters() (*ToolParameters, error) {
+func (*UnimplementedToolPlugin) GetParameters() (*ToolParameters, error) {
 	return nil, status.Error(codes.Unimplemented, "Not implemented")
 }
 
-func (s *DefaultUnimplementedService) Handle(ctx ToolContext) error {
+func (*UnimplementedToolPlugin) Handle(ctx ToolContext) error {
 	return status.Error(codes.Unimplemented, "Not implemented")
 }
 
-func (d *DefaultUnimplementedService) Probe() error {
+func (*UnimplementedToolPlugin) Probe() error {
 	return status.Error(codes.Unimplemented, "Not implemented")
 }
