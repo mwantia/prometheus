@@ -7,10 +7,10 @@ import (
 
 	hclog "github.com/hashicorp/go-hclog"
 
-	"github.com/mwantia/queueverse/internal/plugin/ollama/api"
 	"github.com/mwantia/queueverse/pkg/plugin"
 	"github.com/mwantia/queueverse/pkg/plugin/base"
 	"github.com/mwantia/queueverse/pkg/plugin/provider"
+	"github.com/mwantia/queueverse/plugins/ollama/api"
 )
 
 const (

@@ -7,12 +7,12 @@ import (
 
 	goplugin "github.com/hashicorp/go-plugin"
 	"github.com/mwantia/queueverse/internal/metrics"
-	"github.com/mwantia/queueverse/internal/plugin/essentials"
-	"github.com/mwantia/queueverse/internal/plugin/ollama"
 	"github.com/mwantia/queueverse/pkg/plugin"
 	"github.com/mwantia/queueverse/pkg/plugin/base"
 	"github.com/mwantia/queueverse/pkg/plugin/provider"
 	"github.com/mwantia/queueverse/pkg/plugin/tools"
+	"github.com/mwantia/queueverse/plugins/essentials"
+	"github.com/mwantia/queueverse/plugins/ollama"
 )
 
 var Plugins = map[string]PluginServe{

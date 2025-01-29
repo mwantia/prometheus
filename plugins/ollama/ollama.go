@@ -3,8 +3,8 @@ package ollama
 import (
 	"strings"
 
-	"github.com/mwantia/queueverse/internal/plugin/ollama/api"
 	"github.com/mwantia/queueverse/pkg/plugin/provider"
+	"github.com/mwantia/queueverse/plugins/ollama/api"
 )
 
 func (p *OllamaPlugin) Chat(req provider.ProviderChatRequest) (*provider.ProviderChatResponse, error) {
