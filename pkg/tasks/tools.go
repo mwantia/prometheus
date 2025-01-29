@@ -5,7 +5,7 @@ import (
 	"github.com/mwantia/queueverse/pkg/plugin/tools"
 )
 
-func convertToolService(service tools.ToolService) {
+func convertToolService(service tools.ToolPlugin) {
 }
 
 func createTools() []ollama.Tool {

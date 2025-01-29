@@ -6,13 +6,21 @@ import (
 	"os/exec"
 
 	goplugin "github.com/hashicorp/go-plugin"
+	"github.com/mwantia/queueverse/internal/metrics"
 	"github.com/mwantia/queueverse/internal/plugin/essentials"
+	"github.com/mwantia/queueverse/internal/plugin/ollama"
 	"github.com/mwantia/queueverse/pkg/plugin"
+	"github.com/mwantia/queueverse/pkg/plugin/base"
+	"github.com/mwantia/queueverse/pkg/plugin/provider"
+	"github.com/mwantia/queueverse/pkg/plugin/tools"
 )
 
 var Plugins = map[string]PluginServe{
 	"essentials": func() error {
 		return essentials.Serve()
+	},
+	"ollama": func() error {
+		return ollama.Serve()
 	},
 }
 
@@ -72,103 +80,157 @@ func (a *Agent) RunLocalPlugin(path string, arg ...string) error {
 	a.Log.Debug("Running local plugin", "path", path, "args", arg)
 
 	client := goplugin.NewClient(&goplugin.ClientConfig{
-		HandshakeConfig: plugin.Handshake,
-		Plugins:         plugin.PluginMap,
+		HandshakeConfig: base.Handshake,
+		Plugins:         plugin.Plugins,
 		Cmd:             exec.Command(path, arg...),
+		Logger:          a.Log.Named("plugin").Impl(),
 	})
 
 	rpc, err := client.Client()
 	if err != nil {
 		client.Kill()
-		return fmt.Errorf("failed to create rpc-client: %w", err)
+		return fmt.Errorf("failed to create rpc connection: %w", err)
 	}
 
-	r, err := rpc.Dispense("plugin")
+	raw, err := rpc.Dispense(base.PluginBaseType)
 	if err != nil {
 		client.Kill()
-		return fmt.Errorf("failed to dispense 'plugin' from plugin: %w", err)
+		return fmt.Errorf("failed to dispense from plugin: %w", err)
 	}
-	p := r.(plugin.Plugin)
-	ts, err := p.GetTools()
-	if err != nil {
+
+	basePlugin, exist := raw.(base.BasePlugin)
+	if !exist {
 		client.Kill()
-		return fmt.Errorf("failed to dispense 'plugin' from plugin: %w", err)
+		return fmt.Errorf("unable to cast raw interface")
 	}
 
-	a.Log.Debug("Tools", "map", ts)
-
-	/* raw, err := rpc.Dispense("identity")
-	if err != nil {
-		client.Kill()
-		return fmt.Errorf("failed to dispense 'identity' from plugin: %w", err)
-	}
-
-	ident := raw.(identity.IdentityService)
-	info, err := ident.GetPluginInfo()
+	info, err := basePlugin.GetPluginInfo()
 	if err != nil {
 		client.Kill()
 		return fmt.Errorf("failed to get plugin info: %w", err)
 	}
 
-	metrics.RegisterActivePlugin(info.Name, info.Version, info.Author)
-	for _, service := range info.Services {
-		metrics.RegisterActiveService(info.Name, service.Name, string(service.Type))
+	cfgmap, err := a.Config.GetPluginConfigMap(info.Name)
+	if err != nil {
+		client.Kill()
+		return fmt.Errorf("failed to load plugin config: %w", err)
 	}
 
-	i := &registry.PluginInfo{
-		Name:     info.Name,
-		Version:  info.Version,
-		Author:   info.Author,
-		Metadata: info.Metadata,
+	if err := basePlugin.SetConfig(&base.PluginConfig{ConfigMap: cfgmap}); err != nil {
+		client.Kill()
+		return fmt.Errorf("failed to set plugin config: %w", err)
+	}
 
-		Services: registry.PluginServices{
-			Identity: ident,
-		},
-		Cleanup: func() error {
+	metrics.RegisterActivePlugin(info.Name, info.Version, "unknown")
+
+	switch info.Type {
+	case base.PluginProviderType:
+
+		r, err := rpc.Dispense(base.PluginProviderType)
+		if err != nil {
 			client.Kill()
-			return nil
-		},
-	}
-
-	for index, svr := range info.Services {
-		switch svr.Type {
-		case identity.ToolServiceType:
-			key := fmt.Sprintf("tool.%v", index)
-			raw, err := rpc.Dispense(key)
-			if err != nil {
-				return fmt.Errorf("failed to dispense service: %w", err)
-			}
-
-			service, success := raw.(tools.ToolService)
-			if !success {
-				return fmt.Errorf("failed to cast service")
-			}
-
-			i.Services.Tools = append(i.Services.Tools, service)
-
-		case identity.CacheServiceType:
-			raw, err := rpc.Dispense("cache")
-			if err != nil {
-				return fmt.Errorf("failed to dispense service: %w", err)
-			}
-
-			service, success := raw.(cache.CacheService)
-			if !success {
-				return fmt.Errorf("failed to cast service")
-			}
-
-			service.SetCache(&cache.SetCacheRequest{
-				Key:   "foo",
-				Value: []byte("bar"),
-			})
+			return fmt.Errorf("failed to create rpc connection: %w", err)
 		}
+
+		providerPlugin, exist := r.(provider.ProviderPlugin)
+		if !exist {
+			client.Kill()
+			return fmt.Errorf("unable to cast raw interface")
+		}
+
+		if err := providerPlugin.ProbePlugin(); err != nil {
+			return fmt.Errorf("failed to probe plugin state: %w", err)
+		}
+
+		resp, err := providerPlugin.Chat(provider.ProviderChatRequest{
+			Model: "llama3.2:latest",
+			Messages: []provider.ProviderChatMessage{
+				{
+					Role:    "user",
+					Content: "Why is the sky blue. Reply with 50 words or less.",
+				},
+			},
+		})
+		if err != nil {
+			return fmt.Errorf("failed to chat provider: %w", err)
+		}
+
+		a.Log.Warn("Provider chat response...", "model", resp.Model, "content", resp.Message.Content)
+
+	case base.PluginToolsType:
+
+		r, err := rpc.Dispense(base.PluginToolsType)
+		if err != nil {
+			client.Kill()
+			return fmt.Errorf("failed to create rpc connection: %w", err)
+		}
+
+		toolPlugin := r.(tools.ToolPlugin)
+		if err := toolPlugin.ProbePlugin(); err != nil {
+			return fmt.Errorf("unable to probe plugin state: %w", err)
+		}
+
+	default:
+
+		client.Kill()
+		return fmt.Errorf("unknown plugin type '%s' is not supported", info.Type)
 	}
 
-	if err := a.Registry.RegisterPlugin(i); err != nil {
-		return fmt.Errorf("failed to register plugin: %w", err)
-	}
+	/*
+		i := &registry.PluginInfo{
+			Name:     info.Name,
+			Version:  info.Version,
+			Author:   info.Author,
+			Metadata: info.Metadata,
 
-	a.Log.Info("Loaded new local plugin", "name", info.Name, "version", info.Version, "author", info.Author)
+			Services: registry.PluginServices{
+				Identity: ident,
+			},
+			Cleanup: func() error {
+				client.Kill()
+				return nil
+			},
+		}
+
+		for index, svr := range info.Services {
+			switch svr.Type {
+			case identity.ToolServiceType:
+				key := fmt.Sprintf("tool.%v", index)
+				raw, err := rpc.Dispense(key)
+				if err != nil {
+					return fmt.Errorf("failed to dispense service: %w", err)
+				}
+
+				service, success := raw.(tools.ToolService)
+				if !success {
+					return fmt.Errorf("failed to cast service")
+				}
+
+				i.Services.Tools = append(i.Services.Tools, service)
+
+			case identity.CacheServiceType:
+				raw, err := rpc.Dispense("cache")
+				if err != nil {
+					return fmt.Errorf("failed to dispense service: %w", err)
+				}
+
+				service, success := raw.(cache.CacheService)
+				if !success {
+					return fmt.Errorf("failed to cast service")
+				}
+
+				service.SetCache(&cache.SetCacheRequest{
+					Key:   "foo",
+					Value: []byte("bar"),
+				})
+			}
+		}
+
+		if err := a.Registry.RegisterPlugin(i); err != nil {
+			return fmt.Errorf("failed to register plugin: %w", err)
+		}
+
+		a.Log.Info("Loaded new local plugin", "name", info.Name, "version", info.Version, "author", info.Author)
 	*/
 	return nil
 }

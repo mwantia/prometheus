@@ -9,6 +9,7 @@ import (
 	"github.com/hashicorp/go-hclog"
 	goplugin "github.com/hashicorp/go-plugin"
 	"github.com/mwantia/queueverse/pkg/plugin"
+	"github.com/mwantia/queueverse/pkg/plugin/base"
 	"github.com/mwantia/queueverse/pkg/plugin/provider"
 )
 
@@ -20,8 +21,8 @@ func TestPlugin(t *testing.T) {
 	})
 
 	client := goplugin.NewClient(&goplugin.ClientConfig{
-		HandshakeConfig: plugin.Handshake,
-		Plugins:         plugin.PluginMap,
+		HandshakeConfig: base.Handshake,
+		Plugins:         plugin.Plugins,
 		Cmd:             exec.Command("../../../build/queueverse", "plugin", "essentials"),
 		Logger:          logger,
 	})
@@ -33,30 +34,46 @@ func TestPlugin(t *testing.T) {
 	}
 
 	t.Run("Test.Plugin", func(t *testing.T) {
-		raw, err := rpc.Dispense("plugin")
+		raw, err := rpc.Dispense(base.PluginBaseType)
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		plug := raw.(plugin.Plugin)
-		prov, err := plug.GetProvider()
+		b := raw.(base.BasePlugin)
+		info, err := b.GetPluginInfo()
 		if err != nil {
 			log.Fatal(err)
 		}
 
-		resp, err := prov.Chat(provider.ProviderChatRequest{
-			Model: "test",
-			Messages: []provider.ProviderChatMessage{
-				{
-					Role:    "user",
-					Content: "This is a test",
+		log.Printf("Type: %s", info.Type)
+		log.Printf("Name: %s", info.Name)
+		log.Printf("Version: %s", info.Version)
+
+		switch info.Type {
+		case base.PluginProviderType:
+			raw, err := rpc.Dispense(base.PluginProviderType)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			prov := raw.(provider.ProviderPlugin)
+			resp, err := prov.Chat(provider.ProviderChatRequest{
+				Model: "test",
+				Messages: []provider.ProviderChatMessage{
+					{
+						Role:    "user",
+						Content: "This is a test",
+					},
 				},
-			},
-		})
-		if err != nil {
-			log.Fatal(err)
-		}
+			})
+			if err != nil {
+				log.Fatal(err)
+			}
+			log.Printf("Response: %s", resp.Message.Content)
+		case base.PluginToolsType:
 
-		log.Printf("Resp: %s", resp.Message.Content)
+		default:
+			log.Fatal("Unknown plugin type")
+		}
 	})
 }
