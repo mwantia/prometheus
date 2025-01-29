@@ -16,7 +16,7 @@ tasks:
   build:
     cmds:
       - task: setup
-      - go build -o ${BUILD_PATH} ./cmd/queueverse/main.go
+      - CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-s -w -extldflags "-static"' -trimpath -o ${BUILD_PATH} ./cmd/queueverse/main.go
   run:
     cmds:
       - task: setup
