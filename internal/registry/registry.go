@@ -1,117 +1,84 @@
 package registry
 
 import (
-	"context"
 	"fmt"
-	"sync"
-	"time"
+
+	"github.com/mwantia/queueverse/pkg/plugin/base"
 )
 
-type PluginRegistry struct {
-	mutex   sync.RWMutex
-	Plugins map[string]*PluginInfo
-}
-
-type PluginInfo struct {
-	Name     string            `json:"name"`
-	Version  string            `json:"version"`
-	Author   string            `json:"author,omitempty"`
-	Metadata map[string]string `json:"metadata,omitempty"`
-
-	LastSeen       time.Time `json:"last_seen"`
-	LastKnownError error     `json:"-"`
-	IsHealthy      bool      `json:"is_healthy"`
-
-	Services PluginServices `json:"-"`
-	Cleanup  PluginCleanup  `json:"-"`
-}
-
-type PluginServices struct{}
-
-type PluginCleanup func() error
-
-func NewRegistry() *PluginRegistry {
-	return &PluginRegistry{
-		Plugins: make(map[string]*PluginInfo),
+func New() *Registry {
+	return &Registry{
+		Plugins: make(map[string]*RegistryPlugin),
 	}
 }
 
-func (r *PluginRegistry) Watch(ctx context.Context) {
-	ticker := time.NewTicker(30 * time.Second)
-	defer ticker.Stop()
+func (r *Registry) GetPlugins() []*RegistryPlugin {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 
-	for {
-		plugins := r.GetPlugins()
-		for _, plugin := range plugins {
-			plugin.IsHealthy = true
-			//
-			/* for _, tool := range plugin.Services.Tools {
-				if err := tool.Probe(); err != nil {
-					name, _ := tool.GetName()
-
-					plugin.IsHealthy = false
-					plugin.LastKnownError = fmt.Errorf("error probing tool '%s': %w", name, err)
-
-					continue
-				}
-			} */
-
-			if plugin.IsHealthy {
-				plugin.LastKnownError = nil
-				plugin.LastSeen = time.Now()
-			}
-		}
-
-		select {
-		case <-ticker.C:
-		case <-ctx.Done():
-			return
-		}
+	result := make([]*RegistryPlugin, 0, len(r.Plugins))
+	for _, plugin := range r.Plugins {
+		result = append(result, plugin)
 	}
+
+	return result
 }
 
-func (reg *PluginRegistry) RegisterPlugin(info *PluginInfo) error {
-	reg.mutex.Lock()
-	defer reg.mutex.Unlock()
+func (r *Registry) GetInfo(name string) (*RegistryInfo, error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 
-	if _, exists := reg.Plugins[info.Name]; exists {
+	plugin, exist := r.Plugins[name]
+	if exist {
+		return &plugin.Info, nil
+	}
+
+	return nil, fmt.Errorf("plugin with the name '%s' does not exist", name)
+}
+
+func (r *Registry) GetStatus(name string) (*RegistryStatus, error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	plugin, exist := r.Plugins[name]
+	if exist {
+		return &plugin.Status, nil
+	}
+
+	return nil, fmt.Errorf("plugin with the name '%s' does not exist", name)
+}
+
+func (r *Registry) Register(info *base.PluginInfo, impl interface{}, cleanup RegistryCleanup) error {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
+
+	if _, exists := r.Plugins[info.Name]; exists {
 		return fmt.Errorf("a plugin with the name '%s' has already been registered", info.Name)
 	}
 
-	info.LastSeen = time.Now()
-	reg.Plugins[info.Name] = info
+	plugin := &RegistryPlugin{
+		Type: info.Type,
+		Info: RegistryInfo{
+			Name:    info.Name,
+			Version: info.Version,
+			Author:  info.Author,
+		},
+		Status: RegistryStatus{
+			IsHealthy: false,
+		},
+		Impl:    impl,
+		Cleanup: cleanup,
+	}
 
+	r.Plugins[info.Name] = plugin
 	return nil
 }
 
-func (reg *PluginRegistry) Deregister(name string) (*PluginInfo, error) {
-	reg.mutex.Lock()
-	defer reg.mutex.Unlock()
+func (r *Registry) Deregister(name string) (bool, error) {
+	r.mutex.Lock()
+	defer r.mutex.Unlock()
 
-	plugin, exists := reg.Plugins[name]
-	if !exists {
-		return nil, fmt.Errorf("a plugin with the name %s does not exist", name)
-	}
-
-	return plugin, nil
-}
-
-func (reg *PluginRegistry) GetPlugin(name string) (*PluginInfo, bool) {
-	reg.mutex.Lock()
-	defer reg.mutex.Unlock()
-
-	plugin, exists := reg.Plugins[name]
-	return plugin, exists
-}
-
-func (reg *PluginRegistry) GetPlugins() []*PluginInfo {
-	reg.mutex.Lock()
-	defer reg.mutex.Unlock()
-
-	plugins := make([]*PluginInfo, 0, len(reg.Plugins))
-	for _, plugin := range reg.Plugins {
-		plugins = append(plugins, plugin)
-	}
-
-	return plugins
+	_, exist := r.Plugins[name]
+	delete(r.Plugins, name)
+	return exist, nil
 }

@@ -7,9 +7,9 @@ import (
 	"github.com/mwantia/queueverse/internal/registry"
 )
 
-func HandlePlugins(reg *registry.PluginRegistry) gin.HandlerFunc {
+func HandlePlugins(reg *registry.Registry) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		plugins := reg.GetPlugins()
-		c.JSON(http.StatusOK, plugins)
+		// plugins := reg.GetPlugins()
+		c.JSON(http.StatusOK, nil)
 	}
 }

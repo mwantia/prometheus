@@ -4,23 +4,20 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
-	"strings"
 	"time"
 
 	"github.com/hibiken/asynq"
 	"github.com/mwantia/queueverse/internal/config"
-	"github.com/mwantia/queueverse/internal/metrics"
 	"github.com/mwantia/queueverse/internal/registry"
 	"github.com/mwantia/queueverse/pkg/log"
-	"github.com/mwantia/queueverse/pkg/ollama"
+	"github.com/mwantia/queueverse/pkg/plugin/provider"
 )
 
 const TaskTypeGenerateName = "task:generate"
 
 type GenerateRequest struct {
 	Prompt string `json:"prompt"`
-	Model  string `json:"model,omitempty"`
+	Model  string `json:"model"`
 	Style  string `json:"style,omitempty"`
 }
 
@@ -67,15 +64,15 @@ func CreateGenerateTask(req GenerateRequest) (*asynq.Task, error) {
 	return asynq.NewTask(TaskTypeGenerateName, payload), nil
 }
 
-func CreateGenerateTaskHandler(cfg *config.Config, reg *registry.PluginRegistry) func(context.Context, *asynq.Task) error {
-	oc := ollama.CreateClient(cfg.Ollama.Endpoint, cfg.Ollama.Model, http.DefaultClient)
-	ts := createTools()
+func CreateGenerateTaskHandler(cfg *config.Config, registry *registry.Registry) func(context.Context, *asynq.Task) error {
 	log := log.New("asynq")
 
-	return handleGenerateTask(log, oc, ts)
+	providers, _ := registry.GetProviders()
+
+	return handleGenerateTask(log, providers)
 }
 
-func handleGenerateTask(log log.Logger, oc *ollama.Client, ts []ollama.Tool) func(context.Context, *asynq.Task) error {
+func handleGenerateTask(log log.Logger, providers []provider.ProviderPlugin) func(context.Context, *asynq.Task) error {
 	return func(ctx context.Context, t *asynq.Task) error {
 		var req GenerateRequest
 
@@ -85,72 +82,53 @@ func handleGenerateTask(log log.Logger, oc *ollama.Client, ts []ollama.Tool) fun
 			return fmt.Errorf("failed to unmarshal payload: %w", err)
 		}
 
-		if req.Model == "" {
-			req.Model = oc.Model
-		}
-		if req.Style == "" {
-			req.Style = string(oc.Style)
-		}
-
 		log.Info("Handling generate task...", "model", req.Model, "prompt", req.Prompt)
 
-		creq := ollama.ChatRequest{
-			Model: req.Model,
-			Messages: []ollama.ChatMessage{
-				{
-					Role:    "user",
-					Content: req.Prompt,
-				},
-			},
-		}
-
-		var text strings.Builder
-		rhandler := func(r ollama.ChatResponse) error {
-			text.WriteString(r.Message.Content)
-			return nil
-		}
-		thandler := func(tc ollama.ToolCall) (string, error) {
-			log.Info("Handling tool call...", "name", tc.Function.Name)
-
-			switch tc.Function.Name {
-			case "get_current_time":
-				tz := tc.Function.Arguments["timezone"]
-				loc, err := time.LoadLocation(tz.(string))
-				if err != nil {
-					return "", fmt.Errorf("unable to load timezone '%v': %w", tz, err)
-				}
-
-				return time.Now().In(loc).Format("Mon Jan 2 15:04:05"), nil
+		for _, prov := range providers {
+			models, err := prov.GetModels()
+			if err != nil {
+				log.Warn("Unable to load models from provider", "error", err)
 			}
 
-			return "", fmt.Errorf("no tool with the function name '%s' found", tc.Function.Name)
-		}
+			for _, model := range *models {
+				if model.Name == req.Model {
+					request := provider.ProviderChatRequest{
+						Model: req.Model,
+						Messages: []provider.ProviderChatMessage{
+							{
+								Role:    "user",
+								Content: req.Prompt,
+							},
+						},
+					}
 
-		if err := oc.ChatTools(ctx, creq, rhandler, thandler, ts); err != nil {
-			return fmt.Errorf("failed chat tools: %w", err)
-		}
+					resp, err := prov.Chat(request)
+					if err != nil {
+						log.Error("Failed to generate chat prompt")
+					}
 
-		duration := time.Since(startTime).Seconds()
+					duration := time.Since(startTime).Seconds()
+					result := GenerateResult{
+						Text:     resp.Message.Content,
+						Model:    resp.Model,
+						Style:    "undefined",
+						Duration: duration,
+					}
 
-		obs := metrics.ClientGeneratePromptTasksDurationSeconds.WithLabelValues(oc.Endpoint, req.Model, req.Style)
-		obs.Observe(duration)
+					// metrics.ClientGeneratePromptTasksDurationSeconds.WithLabelValues(oc.Endpoint, req.Model, req.Style).Observe(duration)
 
-		result := GenerateResult{
-			Text:     text.String(),
-			Model:    req.Model,
-			Style:    req.Style,
-			Duration: duration,
-		}
+					log.Debug(resp.Message.Content)
 
-		log.Debug(text.String())
+					data, err := json.Marshal(result)
+					if err != nil {
+						return fmt.Errorf("failed to marshal final response: %w", err)
+					}
 
-		data, err := json.Marshal(result)
-		if err != nil {
-			return fmt.Errorf("failed to marshal final response: %w", err)
-		}
-
-		if _, err := t.ResultWriter().Write(data); err != nil {
-			return fmt.Errorf("failed to write task result: %w", err)
+					if _, err := t.ResultWriter().Write(data); err != nil {
+						return fmt.Errorf("failed to write task result: %w", err)
+					}
+				}
+			}
 		}
 
 		return nil

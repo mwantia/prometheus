@@ -22,7 +22,7 @@ type Metrics struct {
 	Namespace string
 }
 
-func (m *Metrics) Create(cfg *config.Config, reg *registry.PluginRegistry) (Cleanup, error) {
+func (m *Metrics) Create(cfg *config.Config, _ *registry.Registry) (Cleanup, error) {
 	m.Log = log.New("metrics")
 	m.mux = http.NewServeMux()
 	m.srv = &http.Server{

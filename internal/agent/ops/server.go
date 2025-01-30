@@ -23,7 +23,7 @@ type Server struct {
 	srv    *http.Server
 }
 
-func (s *Server) Create(cfg *config.Config, reg *registry.PluginRegistry) (Cleanup, error) {
+func (s *Server) Create(cfg *config.Config, registry *registry.Registry) (Cleanup, error) {
 	s.Log = log.New("server")
 	s.engine = gin.Default()
 	s.srv = &http.Server{
@@ -35,7 +35,7 @@ func (s *Server) Create(cfg *config.Config, reg *registry.PluginRegistry) (Clean
 		return nil, fmt.Errorf("error adding routes: %w", err)
 	}
 
-	if err := s.addRoutes(cfg, reg); err != nil {
+	if err := s.addRoutes(cfg, registry); err != nil {
 		return nil, fmt.Errorf("error adding routes: %w", err)
 	}
 
@@ -70,15 +70,15 @@ func (s *Server) addMiddlewares() error {
 	return nil
 }
 
-func (s *Server) addRoutes(cfg *config.Config, reg *registry.PluginRegistry) error {
+func (s *Server) addRoutes(cfg *config.Config, registry *registry.Registry) error {
 	v1 := s.engine.Group("/v1")
 	auth := s.engine.Group("/v1", tokenAuthMiddleware(cfg.Server.Token))
 
-	v1.GET("/health", api.HandleGetHealth(reg))
-	v1.HEAD("/health", api.HandleIsHealthy(reg))
+	v1.GET("/health", api.HandleGetHealth(registry))
+	v1.HEAD("/health", api.HandleIsHealthy(registry))
 
-	auth.GET("/plugins", api.HandlePlugins(reg))
-	auth.GET("/services", api.HandleServices(reg))
+	auth.GET("/plugins", api.HandlePlugins(registry))
+	auth.GET("/services", api.HandleServices(registry))
 
 	auth.GET("/queue", api.HandleGetQueue(cfg))
 	auth.GET("/queue/:task", api.HandleGetQueueTask(cfg))

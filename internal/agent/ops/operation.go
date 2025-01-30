@@ -8,7 +8,7 @@ import (
 )
 
 type Operation interface {
-	Create(*config.Config, *registry.PluginRegistry) (Cleanup, error)
+	Create(*config.Config, *registry.Registry) (Cleanup, error)
 
 	Serve(context.Context) error
 }

@@ -18,14 +18,14 @@ import (
 type Agent struct {
 	Mutex    sync.RWMutex
 	Log      log.Logger
-	Registry *registry.PluginRegistry
+	Registry *registry.Registry
 	Config   *config.Config
 }
 
 func CreateNewAgent(c *config.Config) *Agent {
 	return &Agent{
 		Log:      log.New("agent"),
-		Registry: registry.NewRegistry(),
+		Registry: registry.New(),
 		Config:   c,
 	}
 }
@@ -123,7 +123,7 @@ func (a *Agent) Serve(ctx context.Context) error {
 		}()
 	}
 
-	go a.Registry.Watch(ctx)
+	go a.Registry.Watch(ctx, time.Second*30)
 
 	<-ctx.Done()
 	a.Log.Debug("Shutting down agent...")
@@ -146,7 +146,7 @@ func (a *Agent) Cleanup() error {
 
 	for _, plugin := range a.Registry.GetPlugins() {
 		if cleanupErr := plugin.Cleanup(); cleanupErr != nil {
-			a.Log.Error("Error while performing cleanup for plugin", "name", plugin.Name)
+			a.Log.Error("Error while performing cleanup for plugin")
 			err = errors.Join(err, cleanupErr)
 		}
 	}

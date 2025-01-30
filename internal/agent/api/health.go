@@ -20,7 +20,7 @@ type PluginHealth struct {
 	Error   string `json:"error,omitempty"`
 }
 
-func HandleGetHealth(reg *registry.PluginRegistry) gin.HandlerFunc {
+func HandleGetHealth(reg *registry.Registry) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		health := Health{
 			Status:  "OK",
@@ -31,19 +31,19 @@ func HandleGetHealth(reg *registry.PluginRegistry) gin.HandlerFunc {
 			err := ""
 			stat := "OK"
 
-			if !plugin.IsHealthy {
+			if !plugin.Status.IsHealthy {
 				stat = "ERROR"
 				health.Healthy = false
 
-				if plugin.LastKnownError != nil {
-					err = plugin.LastKnownError.Error()
+				if plugin.Status.LastKnownError != nil {
+					err = plugin.Status.LastKnownError.Error()
 				}
 			}
 
 			health.Plugins = append(health.Plugins, PluginHealth{
-				Name:    plugin.Name,
+				Name:    plugin.Info.Name,
 				Status:  stat,
-				Healthy: plugin.IsHealthy,
+				Healthy: plugin.Status.IsHealthy,
 				Error:   err,
 			})
 		}
@@ -58,10 +58,10 @@ func HandleGetHealth(reg *registry.PluginRegistry) gin.HandlerFunc {
 	}
 }
 
-func HandleIsHealthy(reg *registry.PluginRegistry) gin.HandlerFunc {
+func HandleIsHealthy(reg *registry.Registry) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		for _, plugin := range reg.GetPlugins() {
-			if !plugin.IsHealthy {
+			if !plugin.Status.IsHealthy {
 				c.Status(http.StatusServiceUnavailable)
 				return
 			}

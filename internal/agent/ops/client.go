@@ -18,7 +18,7 @@ type Client struct {
 	srv *asynq.Server
 }
 
-func (c *Client) Create(cfg *config.Config, reg *registry.PluginRegistry) (Cleanup, error) {
+func (c *Client) Create(cfg *config.Config, registry *registry.Registry) (Cleanup, error) {
 	c.Log = log.New("client")
 	c.mux = asynq.NewServeMux()
 	c.srv = asynq.NewServer(asynq.RedisClientOpt{
@@ -32,7 +32,7 @@ func (c *Client) Create(cfg *config.Config, reg *registry.PluginRegistry) (Clean
 		},
 	})
 
-	c.mux.HandleFunc(tasks.TaskTypeGenerateName, tasks.CreateGenerateTaskHandler(cfg, reg))
+	c.mux.HandleFunc(tasks.TaskTypeGenerateName, tasks.CreateGenerateTaskHandler(cfg, registry))
 
 	return func(ctx context.Context) error {
 		c.srv.Shutdown()

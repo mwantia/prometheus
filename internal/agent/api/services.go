@@ -7,7 +7,7 @@ import (
 	"github.com/mwantia/queueverse/internal/registry"
 )
 
-func HandleServices(reg *registry.PluginRegistry) gin.HandlerFunc {
+func HandleServices(reg *registry.Registry) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		// services := make([]identity.PluginServiceInfo, 0)
 

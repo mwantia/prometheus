@@ -1,10 +1,12 @@
 package agent
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"os/exec"
 
+	hclog "github.com/hashicorp/go-hclog"
 	goplugin "github.com/hashicorp/go-plugin"
 	"github.com/mwantia/queueverse/internal/metrics"
 	"github.com/mwantia/queueverse/pkg/plugin"
@@ -20,7 +22,12 @@ var Plugins = map[string]PluginServe{
 		return essentials.Serve()
 	},
 	"ollama": func() error {
-		return ollama.Serve()
+		return plugin.ServeContext(func(ctx context.Context, logger hclog.Logger) interface{} {
+			return &ollama.OllamaPlugin{
+				Context: ctx,
+				Logger:  logger,
+			}
+		})
 	},
 }
 
@@ -98,13 +105,13 @@ func (a *Agent) RunLocalPlugin(path string, arg ...string) error {
 		return fmt.Errorf("failed to dispense from plugin: %w", err)
 	}
 
-	basePlugin, exist := raw.(base.BasePlugin)
+	plugin, exist := raw.(base.BasePlugin)
 	if !exist {
 		client.Kill()
 		return fmt.Errorf("unable to cast raw interface")
 	}
 
-	info, err := basePlugin.GetPluginInfo()
+	info, err := plugin.GetPluginInfo()
 	if err != nil {
 		client.Kill()
 		return fmt.Errorf("failed to get plugin info: %w", err)
@@ -116,12 +123,12 @@ func (a *Agent) RunLocalPlugin(path string, arg ...string) error {
 		return fmt.Errorf("failed to load plugin config: %w", err)
 	}
 
-	if err := basePlugin.SetConfig(&base.PluginConfig{ConfigMap: cfgmap}); err != nil {
+	if err := plugin.SetConfig(&base.PluginConfig{ConfigMap: cfgmap}); err != nil {
 		client.Kill()
 		return fmt.Errorf("failed to set plugin config: %w", err)
 	}
 
-	metrics.RegisterActivePlugin(info.Name, info.Version, "unknown")
+	metrics.RegisterActivePlugin(info.Name, info.Version, info.Author)
 
 	switch info.Type {
 	case base.PluginProviderType:
@@ -132,30 +139,19 @@ func (a *Agent) RunLocalPlugin(path string, arg ...string) error {
 			return fmt.Errorf("failed to create rpc connection: %w", err)
 		}
 
-		providerPlugin, exist := r.(provider.ProviderPlugin)
+		plugin, exist := r.(provider.ProviderPlugin)
 		if !exist {
 			client.Kill()
 			return fmt.Errorf("unable to cast raw interface")
 		}
 
-		if err := providerPlugin.ProbePlugin(); err != nil {
-			return fmt.Errorf("failed to probe plugin state: %w", err)
+		if err := a.Registry.Register(info, plugin, func() error {
+			client.Kill()
+			return nil
+		}); err != nil {
+			client.Kill()
+			return fmt.Errorf("failed to register plugin: %w", err)
 		}
-
-		resp, err := providerPlugin.Chat(provider.ProviderChatRequest{
-			Model: "llama3.2:latest",
-			Messages: []provider.ProviderChatMessage{
-				{
-					Role:    "user",
-					Content: "Why is the sky blue. Reply with 50 words or less.",
-				},
-			},
-		})
-		if err != nil {
-			return fmt.Errorf("failed to chat provider: %w", err)
-		}
-
-		a.Log.Warn("Provider chat response...", "model", resp.Model, "content", resp.Message.Content)
 
 	case base.PluginToolsType:
 
@@ -165,9 +161,18 @@ func (a *Agent) RunLocalPlugin(path string, arg ...string) error {
 			return fmt.Errorf("failed to create rpc connection: %w", err)
 		}
 
-		toolPlugin := r.(tools.ToolPlugin)
-		if err := toolPlugin.ProbePlugin(); err != nil {
-			return fmt.Errorf("unable to probe plugin state: %w", err)
+		plugin, exist := r.(tools.ToolPlugin)
+		if !exist {
+			client.Kill()
+			return fmt.Errorf("unable to cast raw interface")
+		}
+
+		if err := a.Registry.Register(info, plugin, func() error {
+			client.Kill()
+			return nil
+		}); err != nil {
+			client.Kill()
+			return fmt.Errorf("failed to register plugin: %w", err)
 		}
 
 	default:
@@ -176,61 +181,7 @@ func (a *Agent) RunLocalPlugin(path string, arg ...string) error {
 		return fmt.Errorf("unknown plugin type '%s' is not supported", info.Type)
 	}
 
-	/*
-		i := &registry.PluginInfo{
-			Name:     info.Name,
-			Version:  info.Version,
-			Author:   info.Author,
-			Metadata: info.Metadata,
+	a.Log.Info("Loaded new local plugin", "name", info.Name, "version", info.Version, "author", info.Author)
 
-			Services: registry.PluginServices{
-				Identity: ident,
-			},
-			Cleanup: func() error {
-				client.Kill()
-				return nil
-			},
-		}
-
-		for index, svr := range info.Services {
-			switch svr.Type {
-			case identity.ToolServiceType:
-				key := fmt.Sprintf("tool.%v", index)
-				raw, err := rpc.Dispense(key)
-				if err != nil {
-					return fmt.Errorf("failed to dispense service: %w", err)
-				}
-
-				service, success := raw.(tools.ToolService)
-				if !success {
-					return fmt.Errorf("failed to cast service")
-				}
-
-				i.Services.Tools = append(i.Services.Tools, service)
-
-			case identity.CacheServiceType:
-				raw, err := rpc.Dispense("cache")
-				if err != nil {
-					return fmt.Errorf("failed to dispense service: %w", err)
-				}
-
-				service, success := raw.(cache.CacheService)
-				if !success {
-					return fmt.Errorf("failed to cast service")
-				}
-
-				service.SetCache(&cache.SetCacheRequest{
-					Key:   "foo",
-					Value: []byte("bar"),
-				})
-			}
-		}
-
-		if err := a.Registry.RegisterPlugin(i); err != nil {
-			return fmt.Errorf("failed to register plugin: %w", err)
-		}
-
-		a.Log.Info("Loaded new local plugin", "name", info.Name, "version", info.Version, "author", info.Author)
-	*/
 	return nil
 }
