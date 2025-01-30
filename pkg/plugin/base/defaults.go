@@ -7,14 +7,18 @@ import (
 
 type UnimplementedBasePlugin struct{}
 
-func (p *UnimplementedBasePlugin) GetPluginInfo() (*PluginInfo, error) {
+func (*UnimplementedBasePlugin) GetCapabilities() (*PluginCapabilities, error) {
 	return nil, status.Error(codes.Unimplemented, "Not implemented")
 }
 
-func (p *UnimplementedBasePlugin) SetConfig(*PluginConfig) error {
+func (*UnimplementedBasePlugin) GetPluginInfo() (*PluginInfo, error) {
+	return nil, status.Error(codes.Unimplemented, "Not implemented")
+}
+
+func (*UnimplementedBasePlugin) SetConfig(*PluginConfig) error {
 	return status.Error(codes.Unimplemented, "Not implemented")
 }
 
-func (p *UnimplementedBasePlugin) ProbePlugin() error {
+func (*UnimplementedBasePlugin) ProbePlugin() error {
 	return status.Error(codes.Unimplemented, "Not implemented")
 }

@@ -44,7 +44,9 @@ func servePlugin(plugin interface{}, logger hclog.Logger) error {
 		case tools.ToolPlugin:
 			return nil
 		default:
-			return fmt.Errorf("unsupported plugin type")
+			return fmt.Errorf(`unsupported plugin type.
+			Ensure that all funcs are defined correctly, even in defaults.go.
+			`)
 		}
 	}()
 }

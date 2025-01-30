@@ -18,6 +18,15 @@ func (rc *RpcClient) GetPluginInfo() (*PluginInfo, error) {
 	return reply, nil
 }
 
+func (rc *RpcClient) GetCapabilities() (*PluginCapabilities, error) {
+	var reply *PluginCapabilities
+	if err := rc.Client.Call("Plugin.GetCapabilities", struct{}{}, &reply); err != nil {
+		return nil, fmt.Errorf("error performing client call: %w", err)
+	}
+
+	return reply, nil
+}
+
 func (rc *RpcClient) SetConfig(cfg *PluginConfig) error {
 	var reply error
 	if err := rc.Client.Call("Plugin.SetConfig", cfg, &reply); err != nil {

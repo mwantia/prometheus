@@ -33,7 +33,7 @@ func Serve(impl ProviderPlugin, logger hclog.Logger) error {
 func (impl *ProviderPluginImpl) Server(*goplugin.MuxBroker) (interface{}, error) {
 	return &RpcServer{
 		Impl: impl.Impl,
-		RpcServer: &base.RpcServer{
+		RpcServer: base.RpcServer{
 			Impl: impl.Impl,
 		},
 	}, nil
@@ -42,7 +42,7 @@ func (impl *ProviderPluginImpl) Server(*goplugin.MuxBroker) (interface{}, error)
 func (*ProviderPluginImpl) Client(b *goplugin.MuxBroker, c *rpc.Client) (interface{}, error) {
 	return &RpcClient{
 		Client: c,
-		RpcClient: &base.RpcClient{
+		RpcClient: base.RpcClient{
 			Client: c,
 		},
 	}, nil

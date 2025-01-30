@@ -14,6 +14,16 @@ func (rs *RpcServer) GetPluginInfo(_ struct{}, result *PluginInfo) error {
 	return nil
 }
 
+func (rs *RpcServer) GetCapabilities(_ struct{}, result *PluginCapabilities) error {
+	info, err := rs.Impl.GetCapabilities()
+	if err != nil {
+		return err
+	}
+
+	*result = *info
+	return nil
+}
+
 func (rs *RpcServer) SetConfig(cfg *PluginConfig, result *error) error {
 	*result = rs.Impl.SetConfig(cfg)
 	return nil

@@ -11,7 +11,10 @@ import (
 
 func main() {
 	if err := plugin.ServeContext(func(ctx context.Context, logger hclog.Logger) interface{} {
-		return ollama.Serve()
+		return &ollama.OllamaPlugin{
+			Context: ctx,
+			Logger:  logger,
+		}
 	}); err != nil {
 		log.Panic(err)
 	}
