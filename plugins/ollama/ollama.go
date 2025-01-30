@@ -7,6 +7,25 @@ import (
 	"github.com/mwantia/queueverse/plugins/ollama/api"
 )
 
+func (p *OllamaPlugin) GetModels() (*[]provider.ProviderModel, error) {
+	models, err := p.Client.Tags(p.Context)
+	if err != nil {
+		return nil, err
+	}
+
+	resp := make([]provider.ProviderModel, 0)
+	for _, model := range models {
+		resp = append(resp, provider.ProviderModel{
+			Name: model.Name,
+			Metadata: map[string]any{
+				"size":   model.Size,
+				"digest": model.Digest,
+			},
+		})
+	}
+	return &resp, nil
+}
+
 func (p *OllamaPlugin) Chat(req provider.ProviderChatRequest) (*provider.ProviderChatResponse, error) {
 	var text strings.Builder
 

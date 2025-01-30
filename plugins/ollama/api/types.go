@@ -31,3 +31,9 @@ type ChatMessage struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`
 }
+
+type TagModel struct {
+	Name   string `json:"name"`
+	Size   int    `json:"size"`
+	Digest string `json:"digest"`
+}

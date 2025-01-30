@@ -8,6 +8,8 @@ import (
 type Client interface {
 	Health(context.Context) (bool, error)
 
+	Tags(context.Context) ([]TagModel, error)
+
 	Chat(context.Context, ChatRequest, ChatResponseHandler) error
 }
 
@@ -18,7 +20,6 @@ type clientImpl struct {
 
 type ClientConfig struct {
 	Endpoint string `json:"endpoint"`
-	Model    string `json:"model,omitempty"`
 }
 
 func CreateClient(http *http.Client, cfg ClientConfig) Client {
