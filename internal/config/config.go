@@ -12,7 +12,6 @@ type Config struct {
 	Client  *ClientConfig  `hcl:"client,block"`
 	Metrics *MetricsConfig `hcl:"metrics,block"`
 	Redis   *RedisConfig   `hcl:"redis,block"`
-	Ollama  *OllamaConfig  `hcl:"ollama,block"`
 
 	Plugins []*PluginConfig `hcl:"plugin,block"`
 }
@@ -39,9 +38,6 @@ func CreateDefault() *Config {
 			Endpoint: "127.0.0.1:6379",
 			Database: 0,
 			Password: "",
-		},
-		Ollama: &OllamaConfig{
-			Endpoint: "127.0.0.1:11434",
 		},
 
 		Plugins: make([]*PluginConfig, 0),
@@ -82,13 +78,6 @@ func (c *Config) ValidateConfig() error {
 	}
 	if err := c.Redis.ValidateConfig(); err != nil {
 		return fmt.Errorf("invalid 'redis' block: %w", err)
-	}
-
-	if c.Ollama == nil {
-		return fmt.Errorf("block 'ollama' is required")
-	}
-	if err := c.Ollama.ValidateConfig(); err != nil {
-		return fmt.Errorf("invalid 'ollama' block: %w", err)
 	}
 
 	return nil
