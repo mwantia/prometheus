@@ -11,8 +11,8 @@ type RpcClient struct {
 	Client *rpc.Client
 }
 
-func (rc *RpcClient) GetModels() (*[]ProviderModel, error) {
-	var reply *[]ProviderModel
+func (rc *RpcClient) GetModels() (*[]Model, error) {
+	var reply *[]Model
 	if err := rc.Client.Call("Plugin.GetModels", struct{}{}, &reply); err != nil {
 		return reply, err
 	}
@@ -20,8 +20,8 @@ func (rc *RpcClient) GetModels() (*[]ProviderModel, error) {
 	return reply, nil
 }
 
-func (rc *RpcClient) Chat(req ProviderChatRequest) (*ProviderChatResponse, error) {
-	var reply *ProviderChatResponse
+func (rc *RpcClient) Chat(req ChatRequest) (*ChatResponse, error) {
+	var reply *ChatResponse
 	if err := rc.Client.Call("Plugin.Chat", req, &reply); err != nil {
 		return reply, err
 	}

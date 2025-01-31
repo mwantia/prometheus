@@ -7,7 +7,7 @@ type RpcServer struct {
 	Impl ProviderPlugin
 }
 
-func (rs *RpcServer) GetModels(_ struct{}, result *[]ProviderModel) error {
+func (rs *RpcServer) GetModels(_ struct{}, result *[]Model) error {
 	repl, err := rs.Impl.GetModels()
 	if err != nil {
 		return err
@@ -16,7 +16,7 @@ func (rs *RpcServer) GetModels(_ struct{}, result *[]ProviderModel) error {
 	return nil
 }
 
-func (rs *RpcServer) Chat(req ProviderChatRequest, result *ProviderChatResponse) error {
+func (rs *RpcServer) Chat(req ChatRequest, result *ChatResponse) error {
 	repl, err := rs.Impl.Chat(req)
 	if err != nil {
 		return err

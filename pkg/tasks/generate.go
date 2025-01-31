@@ -92,13 +92,10 @@ func handleGenerateTask(log log.Logger, providers []provider.ProviderPlugin) fun
 
 			for _, model := range *models {
 				if model.Name == req.Model {
-					request := provider.ProviderChatRequest{
+					request := provider.ChatRequest{
 						Model: req.Model,
-						Messages: []provider.ProviderChatMessage{
-							{
-								Role:    "user",
-								Content: req.Prompt,
-							},
+						Messages: []provider.ChatMessage{
+							provider.UserMessage(req.Prompt),
 						},
 					}
 

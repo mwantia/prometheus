@@ -10,10 +10,10 @@ type UnimplementedProviderPlugin struct {
 	base.UnimplementedBasePlugin
 }
 
-func (*UnimplementedProviderPlugin) GetModels() (*[]ProviderModel, error) {
+func (*UnimplementedProviderPlugin) GetModels() (*[]Model, error) {
 	return nil, status.Error(codes.Unimplemented, "Not implemented")
 }
 
-func (*UnimplementedProviderPlugin) Chat(ProviderChatRequest) (*ProviderChatResponse, error) {
+func (*UnimplementedProviderPlugin) Chat(ChatRequest) (*ChatResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "Not implemented")
 }
