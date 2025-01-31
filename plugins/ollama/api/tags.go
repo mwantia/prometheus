@@ -6,9 +6,9 @@ import (
 	"net/http"
 )
 
-func (c *clientImpl) Tags(ctx context.Context) ([]TagModel, error) {
+func (c *clientImpl) Tags(ctx context.Context) ([]Tag, error) {
 	type TagsResponse struct {
-		Models []TagModel `json:"models"`
+		Models []Tag `json:"models"`
 	}
 	var resp TagsResponse
 

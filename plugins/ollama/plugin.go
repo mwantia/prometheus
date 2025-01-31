@@ -19,16 +19,16 @@ const (
 	PluginVersion = "v0.0.1"
 )
 
-type OllamaPlugin struct {
+type OllamaProvider struct {
 	provider.UnimplementedProviderPlugin
 
 	Context context.Context
 	Logger  hclog.Logger
-	Config  OllamaPluginConfig
+	Config  OllamaProviderConfig
 	Client  api.Client
 }
 
-func (*OllamaPlugin) GetPluginInfo() (*base.PluginInfo, error) {
+func (*OllamaProvider) GetPluginInfo() (*base.PluginInfo, error) {
 	return &base.PluginInfo{
 		Type:    PluginType,
 		Name:    PluginName,
@@ -37,7 +37,7 @@ func (*OllamaPlugin) GetPluginInfo() (*base.PluginInfo, error) {
 	}, nil
 }
 
-func (p *OllamaPlugin) SetConfig(cfg *base.PluginConfig) error {
+func (p *OllamaProvider) SetConfig(cfg *base.PluginConfig) error {
 	if err := p.setConfig(cfg.ConfigMap); err != nil {
 		return err
 	}
@@ -53,7 +53,7 @@ func (p *OllamaPlugin) SetConfig(cfg *base.PluginConfig) error {
 	return nil
 }
 
-func (p *OllamaPlugin) ProbePlugin() error {
+func (p *OllamaProvider) ProbePlugin() error {
 	if p.Client == nil {
 		return fmt.Errorf("ollama client is undefined")
 	}

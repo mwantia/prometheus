@@ -7,26 +7,26 @@ import (
 	"github.com/mwantia/queueverse/plugins/ollama/api"
 )
 
-func (p *OllamaPlugin) GetModels() (*[]provider.ProviderModel, error) {
-	models, err := p.Client.Tags(p.Context)
+func (p *OllamaProvider) GetModels() (*[]provider.Model, error) {
+	tags, err := p.Client.Tags(p.Context)
 	if err != nil {
 		return nil, err
 	}
 
-	resp := make([]provider.ProviderModel, 0)
-	for _, model := range models {
-		resp = append(resp, provider.ProviderModel{
-			Name: model.Name,
+	resp := make([]provider.Model, 0)
+	for _, tag := range tags {
+		resp = append(resp, provider.Model{
+			Name: tag.Name,
 			Metadata: map[string]any{
-				"size":   model.Size,
-				"digest": model.Digest,
+				"size":   tag.Size,
+				"digest": tag.Digest,
 			},
 		})
 	}
 	return &resp, nil
 }
 
-func (p *OllamaPlugin) Chat(req provider.ProviderChatRequest) (*provider.ProviderChatResponse, error) {
+func (p *OllamaProvider) Chat(req provider.ChatRequest) (*provider.ChatResponse, error) {
 	var text strings.Builder
 
 	if err := p.Client.Chat(p.Context, api.ChatRequest{
@@ -46,11 +46,8 @@ func (p *OllamaPlugin) Chat(req provider.ProviderChatRequest) (*provider.Provide
 		return nil, err
 	}
 
-	return &provider.ProviderChatResponse{
-		Model: req.Model,
-		Message: provider.ProviderChatMessage{
-			Role:    "assistant",
-			Content: text.String(),
-		},
+	return &provider.ChatResponse{
+		Model:   req.Model,
+		Message: provider.AssistantMessage(text.String()),
 	}, nil
 }

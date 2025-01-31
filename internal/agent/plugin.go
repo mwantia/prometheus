@@ -13,17 +13,22 @@ import (
 	"github.com/mwantia/queueverse/pkg/plugin/base"
 	"github.com/mwantia/queueverse/pkg/plugin/provider"
 	"github.com/mwantia/queueverse/pkg/plugin/tools"
-	"github.com/mwantia/queueverse/plugins/essentials"
+	"github.com/mwantia/queueverse/plugins/mock"
 	"github.com/mwantia/queueverse/plugins/ollama"
 )
 
 var Plugins = map[string]PluginServe{
-	"essentials": func() error {
-		return essentials.Serve()
+	"mock": func() error {
+		return plugin.ServeContext(func(ctx context.Context, logger hclog.Logger) interface{} {
+			return &mock.MockProvider{
+				Context: ctx,
+				Logger:  logger,
+			}
+		})
 	},
 	"ollama": func() error {
 		return plugin.ServeContext(func(ctx context.Context, logger hclog.Logger) interface{} {
-			return &ollama.OllamaPlugin{
+			return &ollama.OllamaProvider{
 				Context: ctx,
 				Logger:  logger,
 			}

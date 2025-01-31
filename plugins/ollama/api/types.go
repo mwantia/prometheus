@@ -32,7 +32,7 @@ type ChatMessage struct {
 	Content string `json:"content"`
 }
 
-type TagModel struct {
+type Tag struct {
 	Name   string `json:"name"`
 	Size   int    `json:"size"`
 	Digest string `json:"digest"`

@@ -8,7 +8,7 @@ import (
 type Client interface {
 	Health(context.Context) (bool, error)
 
-	Tags(context.Context) ([]TagModel, error)
+	Tags(context.Context) ([]Tag, error)
 
 	Chat(context.Context, ChatRequest, ChatResponseHandler) error
 }

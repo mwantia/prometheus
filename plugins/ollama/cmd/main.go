@@ -11,7 +11,7 @@ import (
 
 func main() {
 	if err := plugin.ServeContext(func(ctx context.Context, logger hclog.Logger) interface{} {
-		return &ollama.OllamaPlugin{
+		return &ollama.OllamaProvider{
 			Context: ctx,
 			Logger:  logger,
 		}
