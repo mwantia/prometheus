@@ -38,6 +38,8 @@ plugin "ollama" {
 
 #### Anthropic
 
+Uses `github.com/liushuangls/go-anthropic` to connect to Anthropic Claude to perform prompt generations.
+
 ```json
 plugin "anthropic" {
     config {
