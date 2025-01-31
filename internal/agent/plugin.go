@@ -13,6 +13,7 @@ import (
 	"github.com/mwantia/queueverse/pkg/plugin/base"
 	"github.com/mwantia/queueverse/pkg/plugin/provider"
 	"github.com/mwantia/queueverse/pkg/plugin/tools"
+	"github.com/mwantia/queueverse/plugins/anthropic"
 	"github.com/mwantia/queueverse/plugins/mock"
 	"github.com/mwantia/queueverse/plugins/ollama"
 )
@@ -29,6 +30,14 @@ var Plugins = map[string]PluginServe{
 	"ollama": func() error {
 		return plugin.ServeContext(func(ctx context.Context, logger hclog.Logger) interface{} {
 			return &ollama.OllamaProvider{
+				Context: ctx,
+				Logger:  logger,
+			}
+		})
+	},
+	"anthropic": func() error {
+		return plugin.ServeContext(func(ctx context.Context, logger hclog.Logger) interface{} {
+			return &anthropic.AnthropicProvider{
 				Context: ctx,
 				Logger:  logger,
 			}

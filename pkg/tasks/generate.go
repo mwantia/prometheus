@@ -13,36 +13,14 @@ import (
 	"github.com/mwantia/queueverse/pkg/plugin/provider"
 )
 
-const TaskTypeGenerateName = "task:generate"
-
-type GenerateRequest struct {
-	Prompt string `json:"prompt"`
-	Model  string `json:"model"`
-	Style  string `json:"style,omitempty"`
-}
-
-type GenerateResponse struct {
-	Task   string `json:"task"`
-	State  string `json:"state"`
-	Pool   string `json:"pool"`
-	Result any    `json:"result,omitempty"`
-}
-
-type GenerateResult struct {
-	Text     string  `json:"text"`
-	Model    string  `json:"model,omitempty"`
-	Style    string  `json:"style,omitempty"`
-	Duration float64 `json:"duration,omitempty"`
-}
-
 func GenerateTaskId() string {
 	return fmt.Sprintf("t%d", time.Now().UnixNano())
 }
 
 func CreateGenerateResponse(info *asynq.TaskInfo) (*GenerateResponse, error) {
-	var res any
+	var result GenerateResult
 	if len(info.Result) > 0 {
-		if err := json.Unmarshal(info.Result, &res); err != nil {
+		if err := json.Unmarshal(info.Result, &result); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal task response: %w", err)
 		}
 	}
@@ -51,7 +29,7 @@ func CreateGenerateResponse(info *asynq.TaskInfo) (*GenerateResponse, error) {
 		Task:   info.ID,
 		State:  info.State.String(),
 		Pool:   info.Queue,
-		Result: res,
+		Result: result,
 	}, nil
 }
 
@@ -82,7 +60,7 @@ func handleGenerateTask(log log.Logger, providers []provider.ProviderPlugin) fun
 			return fmt.Errorf("failed to unmarshal payload: %w", err)
 		}
 
-		log.Info("Handling generate task...", "model", req.Model, "prompt", req.Prompt)
+		log.Info("Handling generate task", "model", req.Model, "content", req.Content)
 
 		for _, prov := range providers {
 			models, err := prov.GetModels()
@@ -95,7 +73,7 @@ func handleGenerateTask(log log.Logger, providers []provider.ProviderPlugin) fun
 					request := provider.ChatRequest{
 						Model: req.Model,
 						Messages: []provider.ChatMessage{
-							provider.UserMessage(req.Prompt),
+							provider.UserMessage(req.Content),
 						},
 					}
 
@@ -106,10 +84,11 @@ func handleGenerateTask(log log.Logger, providers []provider.ProviderPlugin) fun
 
 					duration := time.Since(startTime).Seconds()
 					result := GenerateResult{
-						Text:     resp.Message.Content,
-						Model:    resp.Model,
-						Style:    "undefined",
-						Duration: duration,
+						Content: resp.Message.Content,
+						Model:   resp.Model,
+						Metadata: map[string]any{
+							"duration": duration,
+						},
 					}
 
 					// metrics.ClientGeneratePromptTasksDurationSeconds.WithLabelValues(oc.Endpoint, req.Model, req.Style).Observe(duration)

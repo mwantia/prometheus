@@ -148,7 +148,6 @@ func HandlePostQueue(cfg *config.Config) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"error": fmt.Sprintf("Unable to decode body: %v", err),
 			})
-			return
 		}
 
 		client := asynq.NewClient(asynq.RedisClientOpt{
@@ -173,7 +172,6 @@ func HandlePostQueue(cfg *config.Config) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"error": fmt.Sprintf("Unable to enqueue task: %v", err),
 			})
-			return
 		}
 
 		res, err := tasks.CreateGenerateResponse(info)
@@ -181,7 +179,6 @@ func HandlePostQueue(cfg *config.Config) gin.HandlerFunc {
 			c.AbortWithStatusJSON(http.StatusBadRequest, gin.H{
 				"error": fmt.Sprintf("Unable to create response: %v", err),
 			})
-			return
 		}
 
 		c.JSON(http.StatusOK, res)
