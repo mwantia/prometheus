@@ -13,7 +13,7 @@ func (r *Registry) GetTools() ([]tools.ToolPlugin, error) {
 
 	result := make([]tools.ToolPlugin, 0)
 	for _, plugin := range r.Plugins {
-		if plugin.Type == base.PluginToolsType {
+		if plugin.Info.Type == base.PluginToolsType {
 			impl, success := plugin.Impl.(tools.ToolPlugin)
 			if !success {
 				return nil, fmt.Errorf("failed to cast plugin '%s' as ToolPlugin", plugin.Info.Name)

@@ -22,39 +22,14 @@ type PluginHealth struct {
 
 func HandleGetHealth(reg *registry.Registry) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		health := Health{
-			Status:  "OK",
-			Healthy: true,
+		plugins := reg.GetPlugins()
+
+		result := []registry.RegistryStatus{}
+		for _, plugin := range plugins {
+			result = append(result, plugin.Status)
 		}
 
-		for _, plugin := range reg.GetPlugins() {
-			err := ""
-			stat := "OK"
-
-			if !plugin.Status.IsHealthy {
-				stat = "ERROR"
-				health.Healthy = false
-
-				if plugin.Status.LastKnownError != nil {
-					err = plugin.Status.LastKnownError.Error()
-				}
-			}
-
-			health.Plugins = append(health.Plugins, PluginHealth{
-				Name:    plugin.Info.Name,
-				Status:  stat,
-				Healthy: plugin.Status.IsHealthy,
-				Error:   err,
-			})
-		}
-
-		if !health.Healthy {
-			health.Status = "ERROR"
-			c.JSON(http.StatusServiceUnavailable, health)
-			return
-		}
-
-		c.JSON(http.StatusOK, health)
+		c.JSON(http.StatusOK, result)
 	}
 }
 

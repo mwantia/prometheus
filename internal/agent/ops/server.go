@@ -77,8 +77,8 @@ func (s *Server) addRoutes(cfg *config.Config, registry *registry.Registry) erro
 	v1.GET("/health", api.HandleGetHealth(registry))
 	v1.HEAD("/health", api.HandleIsHealthy(registry))
 
-	auth.GET("/plugins", api.HandlePlugins(registry))
-	auth.GET("/services", api.HandleServices(registry))
+	auth.GET("/plugins", api.HandleGetPlugins(registry))
+	auth.GET("/models", api.HandleGetModels(registry))
 
 	auth.GET("/queue", api.HandleGetQueue(cfg))
 	auth.GET("/queue/:task", api.HandleGetQueueTask(cfg))

@@ -3,6 +3,8 @@ package registry
 import (
 	"sync"
 	"time"
+
+	"github.com/mwantia/queueverse/pkg/plugin/base"
 )
 
 type Registry struct {
@@ -12,18 +14,10 @@ type Registry struct {
 }
 
 type RegistryPlugin struct {
-	Type    string
-	Info    RegistryInfo
+	Info    base.PluginInfo
 	Status  RegistryStatus
 	Impl    interface{}
 	Cleanup RegistryCleanup
-}
-
-type RegistryInfo struct {
-	Name     string            `json:"name"`
-	Version  string            `json:"version"`
-	Author   string            `json:"author,omitempty"`
-	Metadata map[string]string `json:"metadata,omitempty"`
 }
 
 type RegistryStatus struct {

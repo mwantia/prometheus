@@ -24,7 +24,7 @@ func (r *Registry) GetPlugins() []*RegistryPlugin {
 	return result
 }
 
-func (r *Registry) GetInfo(name string) (*RegistryInfo, error) {
+func (r *Registry) GetPluginInfo(name string) (*base.PluginInfo, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -36,7 +36,7 @@ func (r *Registry) GetInfo(name string) (*RegistryInfo, error) {
 	return nil, fmt.Errorf("plugin with the name '%s' does not exist", name)
 }
 
-func (r *Registry) GetStatus(name string) (*RegistryStatus, error) {
+func (r *Registry) GetPluginStatus(name string) (*RegistryStatus, error) {
 	r.mutex.Lock()
 	defer r.mutex.Unlock()
 
@@ -57,12 +57,7 @@ func (r *Registry) Register(info *base.PluginInfo, impl interface{}, cleanup Reg
 	}
 
 	plugin := &RegistryPlugin{
-		Type: info.Type,
-		Info: RegistryInfo{
-			Name:    info.Name,
-			Version: info.Version,
-			Author:  info.Author,
-		},
+		Info: *info,
 		Status: RegistryStatus{
 			IsHealthy: false,
 		},
