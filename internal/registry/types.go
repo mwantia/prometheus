@@ -14,10 +14,11 @@ type Registry struct {
 }
 
 type RegistryPlugin struct {
-	Info    base.PluginInfo
-	Status  RegistryStatus
-	Impl    interface{}
-	Cleanup RegistryCleanup
+	Info         base.PluginInfo
+	Capabilities base.PluginCapabilities
+	Status       RegistryStatus
+	Impl         interface{}
+	Cleanup      RegistryCleanup
 }
 
 type RegistryStatus struct {

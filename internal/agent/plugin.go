@@ -122,13 +122,19 @@ func (a *Agent) RunLocalPlugin(path string, arg ...string) error {
 	plugin, exist := raw.(base.BasePlugin)
 	if !exist {
 		client.Kill()
-		return fmt.Errorf("unable to cast raw interface")
+		return fmt.Errorf("unable to cast raw interface into 'base.BasePlugin'")
 	}
 
 	info, err := plugin.GetPluginInfo()
 	if err != nil {
 		client.Kill()
 		return fmt.Errorf("failed to get plugin info: %w", err)
+	}
+
+	cap, err := plugin.GetCapabilities()
+	if err != nil {
+		client.Kill()
+		return fmt.Errorf("failed to get plugin capabilities: %w", err)
 	}
 
 	cfgmap, err := a.Config.GetPluginConfigMap(info.Name)
@@ -156,10 +162,10 @@ func (a *Agent) RunLocalPlugin(path string, arg ...string) error {
 		plugin, exist := r.(provider.ProviderPlugin)
 		if !exist {
 			client.Kill()
-			return fmt.Errorf("unable to cast raw interface")
+			return fmt.Errorf("unable to cast raw interface into 'provider.ProviderPlugin'")
 		}
 
-		if err := a.Registry.Register(info, plugin, func() error {
+		if err := a.Registry.Register(info, cap, plugin, func() error {
 			client.Kill()
 			return nil
 		}); err != nil {
@@ -178,10 +184,10 @@ func (a *Agent) RunLocalPlugin(path string, arg ...string) error {
 		plugin, exist := r.(tools.ToolPlugin)
 		if !exist {
 			client.Kill()
-			return fmt.Errorf("unable to cast raw interface")
+			return fmt.Errorf("unable to cast raw interface into 'tools.ToolPlugin'")
 		}
 
-		if err := a.Registry.Register(info, plugin, func() error {
+		if err := a.Registry.Register(info, cap, plugin, func() error {
 			client.Kill()
 			return nil
 		}); err != nil {

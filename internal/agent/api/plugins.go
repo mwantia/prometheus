@@ -10,11 +10,19 @@ import (
 
 func HandleGetPlugins(reg *registry.Registry) gin.HandlerFunc {
 	return func(c *gin.Context) {
+		type Result struct {
+			Info         base.PluginInfo         `json:"info"`
+			Capabilities base.PluginCapabilities `json:"capabilities"`
+		}
+
 		plugins := reg.GetPlugins()
 
-		result := []base.PluginInfo{}
+		result := []Result{}
 		for _, plugin := range plugins {
-			result = append(result, plugin.Info)
+			result = append(result, Result{
+				Info:         plugin.Info,
+				Capabilities: plugin.Capabilities,
+			})
 		}
 
 		c.JSON(http.StatusOK, result)
