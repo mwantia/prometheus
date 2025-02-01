@@ -28,6 +28,15 @@ type OllamaProvider struct {
 	Client  api.Client
 }
 
+func (*OllamaProvider) GetCapabilities() (*base.PluginCapabilities, error) {
+	return &base.PluginCapabilities{
+		Types: []base.PluginCapabilityType{
+			base.Generate,
+			base.Embed,
+		},
+	}, nil
+}
+
 func (*OllamaProvider) GetPluginInfo() (*base.PluginInfo, error) {
 	return &base.PluginInfo{
 		Type:    PluginType,

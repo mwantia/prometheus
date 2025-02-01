@@ -26,6 +26,14 @@ type AnthropicProvider struct {
 	Client  *anthropic.Client
 }
 
+func (*AnthropicProvider) GetCapabilities() (*base.PluginCapabilities, error) {
+	return &base.PluginCapabilities{
+		Types: []base.PluginCapabilityType{
+			base.Generate,
+		},
+	}, nil
+}
+
 func (*AnthropicProvider) GetPluginInfo() (*base.PluginInfo, error) {
 	return &base.PluginInfo{
 		Type:    PluginType,

@@ -22,6 +22,14 @@ type MockProvider struct {
 	Logger  hclog.Logger
 }
 
+func (*MockProvider) GetCapabilities() (*base.PluginCapabilities, error) {
+	return &base.PluginCapabilities{
+		Types: []base.PluginCapabilityType{
+			base.Generate,
+		},
+	}, nil
+}
+
 func (*MockProvider) GetPluginInfo() (*base.PluginInfo, error) {
 	return &base.PluginInfo{
 		Type:    PluginType,

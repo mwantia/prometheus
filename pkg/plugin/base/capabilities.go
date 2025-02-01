@@ -1,7 +1,9 @@
 package base
 
 const (
-	None PluginCapabilityType = 0
+	None     PluginCapabilityType = 0
+	Generate PluginCapabilityType = 1
+	Embed    PluginCapabilityType = 2
 )
 
 type PluginCapabilityType int32
@@ -10,16 +12,20 @@ type PluginCapabilities struct {
 	Types []PluginCapabilityType `json:"types"`
 }
 
-var pluginCapabilityType_Names = map[int32]string{
-	0: "none",
+var pluginCapabilityType_Names = map[PluginCapabilityType]string{
+	None:     "none",
+	Generate: "generate",
+	Embed:    "embed",
 }
 
-var pluginCapabilityType_Values = map[string]int32{
-	"none": 0,
+var pluginCapabilityType_Values = map[string]PluginCapabilityType{
+	"none":     None,
+	"generate": Generate,
+	"embed":    Embed,
 }
 
 func (t PluginCapabilityType) String() string {
-	name, exist := pluginCapabilityType_Names[int32(t)]
+	name, exist := pluginCapabilityType_Names[t]
 	if !exist {
 		return ""
 	}
