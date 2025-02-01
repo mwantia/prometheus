@@ -1,0 +1,10 @@
+version: '3'
+
+env:
+  BUILD_PATH: ./build/mock-provider
+  CMD_PATH: ./cmd/main.go
+
+tasks:
+  build:
+    cmds:
+      - CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-s -w -extldflags "-static"' -trimpath -o ${BUILD_PATH} ${CMD_PATH}
