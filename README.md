@@ -4,7 +4,7 @@ Ollama queue system and tool calling via plugin support.
 
 ## QueueVerse Plugins
 
-```json
+```hcl
 embed_plugins = ["<pluginname>"]
 ```
 
@@ -16,7 +16,7 @@ Provider plugins are used to act as interface between `generate`-requests schedu
 
 Acts as a very simple dummy that can be accessed by specifying the model `mock-lorem-ipsum-8`, `mock-lorem-ipsum-16` or `mock-lorem-ipsum-32` which returns a fix number of sentences from **Lorem Ipsum**.
 
-```json
+```hcl
 plugin "mock" {
     config {
 
@@ -28,7 +28,7 @@ plugin "mock" {
 
 Connects to **Ollama** to perform prompt generation with the specified model defined in the request.
 
-```json
+```hcl
 plugin "ollama" {
     config {
         endpoint = "<ollama-http-endpoint>"
@@ -40,7 +40,7 @@ plugin "ollama" {
 
 Uses `github.com/liushuangls/go-anthropic` to connect to Anthropic Claude to perform prompt generations.
 
-```json
+```hcl
 plugin "anthropic" {
     config {
         token = "<anthropic-api-token>
