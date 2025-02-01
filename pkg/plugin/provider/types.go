@@ -32,6 +32,18 @@ type ChatResponse struct {
 	Metadata map[string]any `json:"metadata,omitempty"`
 }
 
+type EmbedRequest struct {
+	Model    string         `json:"model"`
+	Input    string         `json:"input"`
+	Metadata map[string]any `json:"metadata,omitempty"`
+}
+
+type EmbedResponse struct {
+	Model      string         `json:"model"`
+	Embeddings [][]float32    `json:"embeddings"`
+	Metadata   map[string]any `json:"metadata,omitempty"`
+}
+
 type ToolDefinition struct {
 	Name        string        `json:"name"`
 	Description string        `json:"description"`

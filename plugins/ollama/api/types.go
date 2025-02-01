@@ -27,6 +27,18 @@ type ChatResponse struct {
 
 type ChatResponseHandler func(ChatResponse) error
 
+type EmbedRequest struct {
+	Model string `json:"model"`
+	Input string `json:"input"`
+}
+
+type EmbedResponse struct {
+	Model      string      `json:"model"`
+	Embeddings [][]float32 `json:"embeddings"`
+}
+
+type EmbedResponseHandler func(EmbedResponse) error
+
 type ChatMessage struct {
 	Role    string `json:"role"`
 	Content string `json:"content"`

@@ -28,3 +28,12 @@ func (rc *RpcClient) Chat(req ChatRequest) (*ChatResponse, error) {
 
 	return reply, nil
 }
+
+func (rc *RpcClient) Embed(req EmbedRequest) (*EmbedResponse, error) {
+	var reply *EmbedResponse
+	if err := rc.Client.Call("Plugin.Embed", req, &reply); err != nil {
+		return reply, err
+	}
+
+	return reply, nil
+}

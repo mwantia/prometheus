@@ -4,6 +4,8 @@ import (
 	"strings"
 
 	"github.com/mwantia/queueverse/pkg/plugin/provider"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (*MockProvider) GetModels() (*[]provider.Model, error) {
@@ -52,4 +54,8 @@ func (*MockProvider) Chat(req provider.ChatRequest) (*provider.ChatResponse, err
 		Message:  provider.AssistantMessage(text.String()),
 		Metadata: req.Metadata,
 	}, nil
+}
+
+func (*MockProvider) Embed(provider.EmbedRequest) (*provider.EmbedResponse, error) {
+	return nil, status.Error(codes.Unavailable, "Embed models are not supported")
 }

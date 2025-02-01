@@ -10,4 +10,6 @@ type ProviderPlugin interface {
 	GetModels() (*[]Model, error)
 
 	Chat(ChatRequest) (*ChatResponse, error)
+
+	Embed(EmbedRequest) (*EmbedResponse, error)
 }

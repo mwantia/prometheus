@@ -24,3 +24,12 @@ func (rs *RpcServer) Chat(req ChatRequest, result *ChatResponse) error {
 	*result = *repl
 	return nil
 }
+
+func (rs *RpcServer) Embed(req EmbedRequest, result *EmbedResponse) error {
+	repl, err := rs.Impl.Embed(req)
+	if err != nil {
+		return err
+	}
+	*result = *repl
+	return nil
+}

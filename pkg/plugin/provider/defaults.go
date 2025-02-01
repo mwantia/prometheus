@@ -17,3 +17,7 @@ func (*UnimplementedProviderPlugin) GetModels() (*[]Model, error) {
 func (*UnimplementedProviderPlugin) Chat(ChatRequest) (*ChatResponse, error) {
 	return nil, status.Error(codes.Unimplemented, "Not implemented")
 }
+
+func (*UnimplementedProviderPlugin) Embed(EmbedRequest) (*EmbedResponse, error) {
+	return nil, status.Error(codes.Unimplemented, "Not implemented")
+}

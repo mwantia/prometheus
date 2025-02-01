@@ -5,6 +5,8 @@ import (
 
 	"github.com/liushuangls/go-anthropic/v2"
 	"github.com/mwantia/queueverse/pkg/plugin/provider"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func (p *AnthropicProvider) GetModels() (*[]provider.Model, error) {
@@ -45,4 +47,8 @@ func (p *AnthropicProvider) Chat(req provider.ChatRequest) (*provider.ChatRespon
 		Model:   req.Model,
 		Message: provider.AssistantMessage(text.String()),
 	}, nil
+}
+
+func (*AnthropicProvider) Embed(provider.EmbedRequest) (*provider.EmbedResponse, error) {
+	return nil, status.Error(codes.Unavailable, "Embed models are not supported")
 }

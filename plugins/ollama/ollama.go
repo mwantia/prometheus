@@ -51,3 +51,22 @@ func (p *OllamaProvider) Chat(req provider.ChatRequest) (*provider.ChatResponse,
 		Message: provider.AssistantMessage(text.String()),
 	}, nil
 }
+
+func (p *OllamaProvider) Embed(req provider.EmbedRequest) (*provider.EmbedResponse, error) {
+	var embeddings [][]float32
+
+	if err := p.Client.Embed(p.Context, api.EmbedRequest{
+		Model: req.Model,
+		Input: req.Input,
+	}, func(resp api.EmbedResponse) error {
+		embeddings = resp.Embeddings
+		return nil
+	}); err != nil {
+		return nil, err
+	}
+
+	return &provider.EmbedResponse{
+		Model:      req.Model,
+		Embeddings: embeddings,
+	}, nil
+}

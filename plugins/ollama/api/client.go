@@ -11,6 +11,8 @@ type Client interface {
 	Tags(context.Context) ([]Tag, error)
 
 	Chat(context.Context, ChatRequest, ChatResponseHandler) error
+
+	Embed(context.Context, EmbedRequest, EmbedResponseHandler) error
 }
 
 type clientImpl struct {
