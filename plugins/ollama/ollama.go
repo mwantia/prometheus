@@ -1,8 +1,6 @@
 package ollama
 
 import (
-	"strings"
-
 	"github.com/mwantia/queueverse/pkg/plugin/provider"
 	"github.com/mwantia/queueverse/plugins/ollama/api"
 )
@@ -27,29 +25,35 @@ func (p *OllamaProvider) GetModels() (*[]provider.Model, error) {
 }
 
 func (p *OllamaProvider) Chat(req provider.ChatRequest) (*provider.ChatResponse, error) {
-	var text strings.Builder
+	result := provider.ChatResponse{
+		Model:    req.Model,
+		Messages: make([]provider.ChatMessage, 0),
+	}
 
-	if err := p.Client.Chat(p.Context, api.ChatRequest{
-		Model: req.Model,
-		Messages: []api.ChatMessage{
-			{
-				Role:    req.Messages[0].Role,
-				Content: req.Messages[0].Content,
-			},
-		},
-		KeepAlive:   -1,
-		ContextSize: 8192,
-	}, func(resp api.ChatResponse) error {
-		_, err := text.WriteString(resp.Message.Content)
-		return err
+	if err := p.Client.Chat(p.Context, CreateMessageRequest(req), func(resp api.ChatResponse) error {
+		message := provider.ChatMessage{
+			Role:      resp.Message.Role,
+			Content:   resp.Message.Content,
+			ToolCalls: make([]provider.ToolCall, 0),
+		}
+
+		for _, tc := range resp.Message.ToolCalls {
+			message.ToolCalls = append(message.ToolCalls, provider.ToolCall{
+				Function: provider.ToolFunction{
+					Index:     tc.Function.Index,
+					Name:      tc.Function.Name,
+					Arguments: tc.Function.Arguments,
+				},
+			})
+		}
+
+		result.Messages = append(result.Messages, message)
+		return nil
 	}); err != nil {
 		return nil, err
 	}
 
-	return &provider.ChatResponse{
-		Model:   req.Model,
-		Message: provider.AssistantMessage(text.String()),
-	}, nil
+	return &result, nil
 }
 
 func (p *OllamaProvider) Embed(req provider.EmbedRequest) (*provider.EmbedResponse, error) {

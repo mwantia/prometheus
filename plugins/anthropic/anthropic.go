@@ -1,7 +1,7 @@
 package anthropic
 
 import (
-	"strings"
+	"fmt"
 
 	"github.com/liushuangls/go-anthropic/v2"
 	"github.com/mwantia/queueverse/pkg/plugin/provider"
@@ -27,26 +27,12 @@ func (p *AnthropicProvider) GetModels() (*[]provider.Model, error) {
 }
 
 func (p *AnthropicProvider) Chat(req provider.ChatRequest) (*provider.ChatResponse, error) {
-	resp, err := p.Client.CreateMessages(p.Context, anthropic.MessagesRequest{
-		Model: anthropic.Model(req.Model),
-		Messages: []anthropic.Message{
-			anthropic.NewUserTextMessage(req.Messages[0].Content),
-		},
-		MaxTokens: 1000,
-	})
+	resp, err := p.Client.CreateMessages(p.Context, CreateMessageRequest(req))
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create messages: %w", err)
 	}
 
-	var text strings.Builder
-	for _, content := range resp.Content {
-		text.WriteString(content.GetText())
-	}
-
-	return &provider.ChatResponse{
-		Model:   req.Model,
-		Message: provider.AssistantMessage(text.String()),
-	}, nil
+	return CreateMessageResponse(resp)
 }
 
 func (*AnthropicProvider) Embed(provider.EmbedRequest) (*provider.EmbedResponse, error) {

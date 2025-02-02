@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 )
 
@@ -81,6 +82,10 @@ func (c *clientImpl) stream(ctx context.Context, method, path string, data any, 
 	defer response.Body.Close()
 
 	if response.StatusCode >= http.StatusBadRequest {
+		body, _ := io.ReadAll(response.Body)
+		debug := string(body)
+		log.Println(debug)
+
 		return fmt.Errorf("request failed with status %d", response.StatusCode)
 	}
 
