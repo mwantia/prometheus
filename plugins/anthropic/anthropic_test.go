@@ -1,4 +1,4 @@
-package ollama
+package anthropic
 
 import (
 	"context"
@@ -6,12 +6,13 @@ import (
 	"log"
 	"testing"
 
+	"github.com/liushuangls/go-anthropic/v2"
 	"github.com/mwantia/queueverse/internal/config"
 	"github.com/mwantia/queueverse/pkg/plugin/base"
 	"github.com/mwantia/queueverse/pkg/plugin/provider"
 )
 
-func TestOllama(t *testing.T) {
+func TestAnthropic(t *testing.T) {
 	cfg, err := config.ParseConfig("../../tests/config.hcl")
 	if err != nil {
 		t.Fatalf("Failed to parse test config: %v", err)
@@ -22,16 +23,16 @@ func TestOllama(t *testing.T) {
 		t.Fatalf("Failed to load plugin config: %v", err)
 	}
 
-	plugin := OllamaProvider{
+	plugin := AnthropicProvider{
 		Context: context.TODO(),
 	}
 	if err := plugin.SetConfig(&base.PluginConfig{ConfigMap: cfgmap}); err != nil {
 		t.Fatalf("Failed to set plugin config: %v", err)
 	}
 
-	t.Run("Ollama.Chat", func(t *testing.T) {
+	t.Run("Anthropic.Chat", func(t *testing.T) {
 		resp, err := plugin.Chat(provider.ChatRequest{
-			Model: "llama3.2:latest",
+			Model: string(anthropic.ModelClaude3Dot5HaikuLatest),
 			Messages: []provider.ChatMessage{
 				provider.UserMessage("Send a message to Roman Blake over Discord and tell him that I might arrive late to the meeting."),
 			},
