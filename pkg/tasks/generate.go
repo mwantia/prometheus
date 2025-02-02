@@ -42,15 +42,11 @@ func CreateGenerateTask(req GenerateRequest) (*asynq.Task, error) {
 	return asynq.NewTask(TaskTypeGenerateName, payload), nil
 }
 
-func CreateGenerateTaskHandler(cfg *config.Config, registry *registry.Registry) func(context.Context, *asynq.Task) error {
-	log := log.New("asynq")
-
-	providers, _ := registry.GetProviders()
-
-	return handleGenerateTask(log, providers)
+func CreateGenerateTaskHandler(cfg *config.Config, reg *registry.Registry) func(context.Context, *asynq.Task) error {
+	return handleGenerateTask(log.New("asynq"), reg)
 }
 
-func handleGenerateTask(log log.Logger, providers []provider.ProviderPlugin) func(context.Context, *asynq.Task) error {
+func handleGenerateTask(log log.Logger, reg *registry.Registry) func(context.Context, *asynq.Task) error {
 	return func(ctx context.Context, t *asynq.Task) error {
 		var req GenerateRequest
 
@@ -60,51 +56,64 @@ func handleGenerateTask(log log.Logger, providers []provider.ProviderPlugin) fun
 			return fmt.Errorf("failed to unmarshal payload: %w", err)
 		}
 
-		log.Info("Handling generate task", "model", req.Model, "content", req.Content)
+		prov, err := reg.GetModelProvider(req.Model)
+		if err != nil {
+			return fmt.Errorf("failed to load model '%s': %w", req.Model, err)
+		}
 
-		for _, prov := range providers {
-			models, err := prov.GetModels()
-			if err != nil {
-				log.Warn("Unable to load models from provider", "error", err)
-			}
+		log.Info("Handle Generate Task", "model", req.Model, "content", req.Content)
 
-			for _, model := range *models {
-				if model.Name == req.Model {
-					request := provider.ChatRequest{
-						Model: req.Model,
-						Messages: []provider.ChatMessage{
-							provider.UserMessage(req.Content),
+		request := provider.ChatRequest{
+			Model: req.Model,
+			Messages: []provider.ChatMessage{
+				provider.UserMessage(req.Content),
+			},
+			Tools: []provider.ToolDefinition{
+				{
+					Name:        "get_current_time",
+					Description: "Get the current time in the specified timezone",
+					Parameters: provider.ToolParameters{
+						Type: provider.ToolTypeString,
+						Required: []string{
+							"timezone",
 						},
-					}
-
-					resp, err := prov.Chat(request)
-					if err != nil {
-						log.Error("Failed to generate chat prompt")
-					}
-
-					duration := time.Since(startTime).Seconds()
-					result := GenerateResult{
-						Content: resp.Message.Content,
-						Model:   resp.Model,
-						Metadata: map[string]any{
-							"duration": duration,
+						Properties: map[string]provider.ToolProperty{
+							"timezone": {
+								Type:        provider.ToolTypeString,
+								Description: "The timezone to use. Must be a IANA Time Zone",
+							},
 						},
-					}
+					},
+				},
+			},
+		}
 
-					// metrics.ClientGeneratePromptTasksDurationSeconds.WithLabelValues(oc.Endpoint, req.Model, req.Style).Observe(duration)
+		resp, err := prov.Chat(request)
+		if err != nil {
+			return fmt.Errorf("failed to generate chat prompt: %w", err)
+		}
 
-					log.Debug(resp.Message.Content)
+		duration := time.Since(startTime).Seconds()
+		result := GenerateResult{
+			Content: resp.Messages[0].Content,
+			Model:   resp.Model,
+			Metadata: map[string]any{
+				"duration": duration,
+			},
+		}
 
-					data, err := json.Marshal(result)
-					if err != nil {
-						return fmt.Errorf("failed to marshal final response: %w", err)
-					}
+		// metrics.ClientGeneratePromptTasksDurationSeconds.WithLabelValues(oc.Endpoint, req.Model, req.Style).Observe(duration)
 
-					if _, err := t.ResultWriter().Write(data); err != nil {
-						return fmt.Errorf("failed to write task result: %w", err)
-					}
-				}
-			}
+		debug, _ := json.Marshal(resp)
+		log.Debug(string(debug))
+
+		data, err := json.Marshal(result)
+		if err != nil {
+			return fmt.Errorf("failed to marshal final response: %w", err)
+		}
+
+		if _, err := t.ResultWriter().Write(data); err != nil {
+			return fmt.Errorf("failed to write task result: %w", err)
 		}
 
 		return nil

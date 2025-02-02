@@ -5,6 +5,23 @@ const (
 	ChatRoleUser      = "user"
 	ChatRoleAssistant = "assistant"
 	ChatRoleTool      = "tool"
+	ChatRoleDocument  = "document"
+	ChatRoleImage     = "image"
+)
+
+type ToolDefinitionType string
+
+const (
+	ToolDefinitionFunction ToolDefinitionType = "function"
+)
+
+type ToolType string
+
+const (
+	ToolTypeObject  ToolType = "object"
+	ToolTypeString  ToolType = "string"
+	ToolTypeBoolean ToolType = "boolean"
+	ToolTypeInteger ToolType = "integer"
 )
 
 type Model struct {
@@ -28,7 +45,7 @@ type ChatMessage struct {
 
 type ChatResponse struct {
 	Model    string         `json:"model"`
-	Message  ChatMessage    `json:"message"`
+	Messages []ChatMessage  `json:"messages"`
 	Metadata map[string]any `json:"metadata,omitempty"`
 }
 
@@ -45,19 +62,19 @@ type EmbedResponse struct {
 }
 
 type ToolDefinition struct {
-	Name        string        `json:"name"`
-	Description string        `json:"description"`
-	Parameter   ToolParameter `json:"parameter"`
+	Name        string         `json:"name"`
+	Description string         `json:"description"`
+	Parameters  ToolParameters `json:"parameters"`
 }
 
-type ToolParameter struct {
-	Type       string         `json:"type"`
-	Required   []string       `json:"required,omitempty"`
-	Properties []ToolProperty `json:"properties,omitempty"`
+type ToolParameters struct {
+	Type       ToolType                `json:"type"`
+	Required   []string                `json:"required,omitempty"`
+	Properties map[string]ToolProperty `json:"properties,omitempty"`
 }
 
 type ToolProperty struct {
-	Type        string   `json:"type"`
+	Type        ToolType `json:"type"`
 	Description string   `json:"description"`
 	Enum        []string `json:"enum,omitempty"`
 }
