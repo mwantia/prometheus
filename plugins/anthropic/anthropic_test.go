@@ -3,13 +3,16 @@ package anthropic
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"testing"
+	"time"
 
 	"github.com/liushuangls/go-anthropic/v2"
 	"github.com/mwantia/queueverse/internal/config"
 	"github.com/mwantia/queueverse/pkg/plugin/base"
 	"github.com/mwantia/queueverse/pkg/plugin/provider"
+	"github.com/mwantia/queueverse/plugins/anthropic/tools"
 )
 
 func TestAnthropic(t *testing.T) {
@@ -34,72 +37,13 @@ func TestAnthropic(t *testing.T) {
 		req := provider.ChatRequest{
 			Model: string(anthropic.ModelClaude3Dot5HaikuLatest),
 			Messages: []provider.ChatMessage{
-				provider.UserMessage("Send a message to the username 'romanblake' over Discord and tell him that I might arrive late to the meeting."),
+				// provider.UserMessage("Send a message to 'Roman Blake' over Discord and tell him that I might arrive late to the meeting."),
+				provider.UserMessage("Tell me the current time in germany."),
 			},
 			Tools: []provider.ToolDefinition{
-				{
-					Name: "send_discord_pm",
-					Description: `Sends a private message over Discord to a user.
-					The message property supports markdown to allow, for example bold or cursiv text.
-					It should only be used when the user wants to send a message, or even a tool response to another user.
-					You must define the intend of the message, as well as the user it was send or requested from.
-					Use templates like '{{ .displayname }}' to refer to the user making the request (e.g. Displayname = 'Max Mustermann').`,
-					Parameters: provider.ToolParameters{
-						Type:     provider.ToolTypeBoolean,
-						Required: []string{"user", "message"},
-						Properties: map[string]provider.ToolProperty{
-							"user": {
-								Type:        provider.ToolTypeString,
-								Description: `The user the message will be send to.`,
-							},
-							"message": {
-								Type:        provider.ToolTypeString,
-								Description: `The message send to over Discord (Supports markdown).`,
-							},
-						},
-					},
-				},
-				{
-					Name: "get_discord_contact",
-					Description: `Retrieves a list of usernames available within Discord.
-					Can be used in combination with other Discord tools that require information about a user.
-					The received userdata is stored and provided to other tool calls as variables. 
-					This can be accessed in a template format by defining '{{ user.<property> }}'.
-					These can even be used in property values for other tool calls.
-					The following variables will become available after searching for a user:
-					* user.username
-					* user.displayname
-					* user.mail
-					* user.status`,
-					Parameters: provider.ToolParameters{
-						Type:     provider.ToolTypeString,
-						Required: []string{},
-						Properties: map[string]provider.ToolProperty{
-							"search": {
-								Type: provider.ToolTypeString,
-								Description: `Defines the search query used to find the correct user.
-								This can be the displayname, surname, lastname or other available contact information`,
-							},
-						},
-					},
-				},
-				{
-					Name: "get_current_time",
-					Description: `Get the current time in the specified timezone.
-					The timezone must be a IANA compatible timezone.
-					The output is in the following format 'Mon Jan 2 15:04:05'.
-					Only use the toll, if the conversation specifically requires the current time.`,
-					Parameters: provider.ToolParameters{
-						Type:     provider.ToolTypeString,
-						Required: []string{"timezone"},
-						Properties: map[string]provider.ToolProperty{
-							"timezone": {
-								Type:        provider.ToolTypeString,
-								Description: "The timezone to use. Must be a IANA Time Zone.",
-							},
-						},
-					},
-				},
+				tools.TimeGetCurrent,
+				tools.DiscordListContact,
+				tools.DiscordSendPM,
 			},
 		}
 
@@ -111,6 +55,59 @@ func TestAnthropic(t *testing.T) {
 		debug, _ := json.Marshal(resp)
 		log.Println(string(debug))
 
-		req.Messages = append(req.Messages, resp.Messages...)
+		// This should result in a simple chat request without any additional tool calls
+		if len(resp.Messages) == 1 && len(resp.Messages[0].ToolCalls) == 0 {
+			log.Println(resp.Messages[0].Content)
+		} else {
+			for _, msg := range resp.Messages {
+				if len(msg.ToolCalls) > 0 {
+					for _, toolcall := range msg.ToolCalls {
+
+						output, err := executeToolCall(toolcall)
+						if err != nil {
+							t.Fatalf("failed to execute tool call: %v", err)
+						}
+
+						req.Messages = append(req.Messages, provider.ChatMessage{
+							ID:      msg.ID,
+							Role:    provider.ChatRoleTool,
+							Content: output,
+						})
+					}
+				} else {
+					req.Messages = append(req.Messages, msg)
+				}
+			}
+		}
+
+		resp, err = plugin.Chat(req)
+		if err != nil {
+			t.Fatalf("Failed to perform chat request: %v", err)
+		}
+
+		debug, _ = json.Marshal(resp)
+		log.Println(string(debug))
 	})
+}
+
+func executeToolCall(toolcall provider.ToolCall) (string, error) {
+	switch toolcall.Function.Name {
+	case tools.TimeGetCurrent.Name:
+		timezone, exist := toolcall.Function.Arguments["timezone"]
+		if !exist {
+			return "", fmt.Errorf("failed too call '%s': argument 'timezone' not provided", toolcall.Function.Name)
+		}
+
+		location, err := time.LoadLocation(timezone.(string))
+		if err != nil {
+			return "", fmt.Errorf("failed to load location: ")
+		}
+
+		return time.Now().In(location).Format("Mon Jan 2 15:04:05"), nil
+
+	case tools.DiscordListContact.Name:
+
+	case tools.DiscordSendPM.Name:
+	}
+	return "", nil
 }

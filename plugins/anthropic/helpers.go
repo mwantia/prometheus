@@ -12,12 +12,23 @@ import (
 func CreateMessageRequest(req provider.ChatRequest) anthropic.MessagesRequest {
 	messages := []anthropic.Message{}
 	for _, msg := range req.Messages {
-		messages = append(messages, anthropic.Message{
-			Role: anthropic.ChatRole(msg.Role),
-			Content: []anthropic.MessageContent{
-				anthropic.NewTextMessageContent(msg.Content),
-			},
-		})
+		switch msg.Role {
+		case provider.ChatRoleAssistant, provider.ChatRoleUser:
+			messages = append(messages, anthropic.Message{
+				Role: anthropic.ChatRole(msg.Role),
+				Content: []anthropic.MessageContent{
+					anthropic.NewTextMessageContent(msg.Content),
+				},
+			})
+
+		case provider.ChatRoleTool:
+			messages = append(messages, anthropic.Message{
+				Role: anthropic.RoleUser,
+				Content: []anthropic.MessageContent{
+					anthropic.NewToolResultMessageContent(msg.ID, msg.Content, false),
+				},
+			})
+		}
 	}
 
 	tools := []anthropic.ToolDefinition{}

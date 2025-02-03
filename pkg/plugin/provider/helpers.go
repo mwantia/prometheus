@@ -1,33 +1,66 @@
 package provider
 
+import "strings"
+
 func SystemMessage(content string) ChatMessage {
 	return ChatMessage{
-		Role:      ChatRoleSystem,
-		Content:   content,
-		ToolCalls: nil,
+		Role: ChatRoleSystem,
+		Content: []ChatMessageContent{
+			{
+				Type: ChatMessageText,
+				Text: content,
+			},
+		},
 	}
 }
 
 func UserMessage(content string) ChatMessage {
 	return ChatMessage{
-		Role:      ChatRoleUser,
-		Content:   content,
-		ToolCalls: nil,
+		Role: ChatRoleUser,
+		Content: []ChatMessageContent{
+			{
+				Type: ChatMessageText,
+				Text: content,
+			},
+		},
 	}
 }
 
 func AssistantMessage(content string) ChatMessage {
 	return ChatMessage{
-		Role:      ChatRoleAssistant,
-		Content:   content,
-		ToolCalls: nil,
+		Role: ChatRoleAssistant,
+		Content: []ChatMessageContent{
+			{
+				Type: ChatMessageText,
+				Text: content,
+			},
+		},
 	}
 }
 
-func ToolMessage(content string) ChatMessage {
+func ToolCallsMessage(content string, toolcalls []ToolCall) ChatMessage {
 	return ChatMessage{
-		Role:      ChatRoleTool,
-		Content:   content,
-		ToolCalls: nil,
+		Role: ChatRoleAssistant,
+		Content: []ChatMessageContent{
+			{
+				Type: ChatMessageText,
+				Text: content,
+			},
+			{
+				Type:      ChatMessageToolUse,
+				ToolCalls: toolcalls,
+			},
+		},
 	}
+}
+
+func (msg *ChatMessage) GetText() string {
+	var text strings.Builder
+	for _, content := range msg.Content {
+		if content.Type == ChatMessageText {
+			text.WriteString(content.Text)
+		}
+	}
+
+	return text.String()
 }

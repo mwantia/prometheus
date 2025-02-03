@@ -32,13 +32,18 @@ func (p *OllamaProvider) Chat(req provider.ChatRequest) (*provider.ChatResponse,
 
 	if err := p.Client.Chat(p.Context, CreateMessageRequest(req), func(resp api.ChatResponse) error {
 		message := provider.ChatMessage{
-			Role:      resp.Message.Role,
-			Content:   resp.Message.Content,
-			ToolCalls: make([]provider.ToolCall, 0),
+			Role: provider.ChatRoleType(resp.Message.Role),
+			Content: []provider.ChatMessageContent{
+				{
+					Type: provider.ChatMessageText,
+					Text: resp.Message.Content,
+				},
+			},
 		}
 
+		toolcalls := make([]provider.ToolCall, 0)
 		for _, tc := range resp.Message.ToolCalls {
-			message.ToolCalls = append(message.ToolCalls, provider.ToolCall{
+			toolcalls = append(toolcalls, provider.ToolCall{
 				Function: provider.ToolFunction{
 					Index:     tc.Function.Index,
 					Name:      tc.Function.Name,
@@ -47,6 +52,11 @@ func (p *OllamaProvider) Chat(req provider.ChatRequest) (*provider.ChatResponse,
 			})
 		}
 
+		message.Content = append(message.Content, provider.ChatMessageContent{
+			Type:      provider.ChatMessageToolUse,
+			Text:      "",
+			ToolCalls: toolcalls,
+		})
 		result.Messages = append(result.Messages, message)
 		return nil
 	}); err != nil {

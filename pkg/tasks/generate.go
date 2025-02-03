@@ -95,7 +95,7 @@ func handleGenerateTask(log log.Logger, reg *registry.Registry) func(context.Con
 
 		duration := time.Since(startTime).Seconds()
 		result := GenerateResult{
-			Content: resp.Messages[0].Content,
+			Content: resp.Messages[0].GetText(),
 			Model:   resp.Model,
 			Metadata: map[string]any{
 				"duration": duration,

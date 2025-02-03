@@ -1,6 +1,8 @@
 package ollama
 
 import (
+	"log"
+
 	"github.com/mwantia/queueverse/pkg/plugin/provider"
 	"github.com/mwantia/queueverse/plugins/ollama/api"
 )
@@ -8,22 +10,36 @@ import (
 func CreateMessageRequest(req provider.ChatRequest) api.ChatRequest {
 	messages := []api.ChatMessage{}
 	for _, msg := range req.Messages {
-		tools := []api.ToolCall{}
-		for _, tool := range msg.ToolCalls {
-			tools = append(tools, api.ToolCall{
-				Function: api.ToolCallFunction{
-					Index:     tool.Function.Index,
-					Name:      tool.Function.Name,
-					Arguments: tool.Function.Arguments,
-				},
-			})
-		}
+		for _, content := range msg.Content {
+			switch content.Type {
+			case provider.ChatMessageText, provider.ChatMessageDocument:
+				messages = append(messages, api.ChatMessage{
+					Role:    string(msg.Role),
+					Content: content.Text,
+				})
 
-		messages = append(messages, api.ChatMessage{
-			Role:      msg.Role,
-			Content:   msg.Content,
-			ToolCalls: tools,
-		})
+			case provider.ChatMessageToolUse:
+				tools := []api.ToolCall{}
+				for _, tool := range content.ToolCalls {
+					tools = append(tools, api.ToolCall{
+						Function: api.ToolCallFunction{
+							Index:     tool.Function.Index,
+							Name:      tool.Function.Name,
+							Arguments: tool.Function.Arguments,
+						},
+					})
+				}
+
+				messages = append(messages, api.ChatMessage{
+					Role:      string(msg.Role),
+					Content:   "",
+					ToolCalls: tools,
+				})
+
+			case provider.ChatMessageImage:
+				log.Panic("Not supported")
+			}
+		}
 	}
 
 	tools := []api.ToolDefinition{}
