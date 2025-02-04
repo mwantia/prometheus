@@ -51,8 +51,8 @@ func (*MockProvider) Chat(req provider.ChatRequest) (*provider.ChatResponse, err
 
 	return &provider.ChatResponse{
 		Model: req.Model,
-		Messages: []provider.ChatMessage{
-			provider.AssistantMessage(text.String()),
+		Message: provider.Message{
+			Content: text.String(),
 		},
 		Metadata: req.Metadata,
 	}, nil

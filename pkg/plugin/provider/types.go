@@ -1,30 +1,12 @@
 package provider
 
-type ChatRoleType string
-
-type ChatMessageType string
-
-type ToolDefinitionType string
-
-type ToolDataType string
+type DataType string
 
 const (
-	ChatRoleSystem    ChatRoleType = "system"
-	ChatRoleUser      ChatRoleType = "user"
-	ChatRoleAssistant ChatRoleType = "assistant"
-
-	ChatMessageText       ChatMessageType = "text"
-	ChatMessageToolResult ChatMessageType = "tool_result"
-	ChatMessageToolUse    ChatMessageType = "tool_use"
-	ChatMessageDocument   ChatMessageType = "document"
-	ChatMessageImage      ChatMessageType = "image"
-
-	ToolDefinitionFunction ToolDefinitionType = "function"
-
-	ToolTypeObject  ToolDataType = "object"
-	ToolTypeString  ToolDataType = "string"
-	ToolTypeBoolean ToolDataType = "boolean"
-	ToolTypeInteger ToolDataType = "integer"
+	TypeObject  DataType = "object"
+	TypeString  DataType = "string"
+	TypeBoolean DataType = "boolean"
+	TypeInteger DataType = "integer"
 )
 
 type Model struct {
@@ -32,36 +14,26 @@ type Model struct {
 	Metadata map[string]any `json:"metadata,omitempty"`
 }
 
+type Message struct {
+	Content string `json:"content"`
+}
+
 type ChatRequest struct {
 	Model    string           `json:"model"`
-	Messages []ChatMessage    `json:"messages"`
+	Message  Message          `json:"message"`
 	Tools    []ToolDefinition `json:"tools,omitempty"`
 	Metadata map[string]any   `json:"metadata,omitempty"`
 }
 
-type ChatMessage struct {
-	ID      string               `json:"id,omitempty"`
-	Role    ChatRoleType         `json:"role"`
-	Content []ChatMessageContent `json:"content"`
-}
-
-type ChatMessageContent struct {
-	ID        string          `json:"id,omitempty"`
-	Name      string          `json:"name,omitempty"`
-	Type      ChatMessageType `json:"type"`
-	Text      string          `json:"text,omitempty"`
-	ToolCalls []ToolCall      `json:"toolcalls,omitempty"`
-}
-
 type ChatResponse struct {
 	Model    string         `json:"model"`
-	Messages []ChatMessage  `json:"messages"`
+	Message  Message        `json:"message"`
 	Metadata map[string]any `json:"metadata,omitempty"`
 }
 
 type EmbedRequest struct {
 	Model    string         `json:"model"`
-	Input    string         `json:"input"`
+	Message  Message        `json:"message"`
 	Metadata map[string]any `json:"metadata,omitempty"`
 }
 
@@ -72,25 +44,17 @@ type EmbedResponse struct {
 }
 
 type ToolDefinition struct {
-	Name        string         `json:"name"`
-	Description string         `json:"description"`
-	Parameters  ToolParameters `json:"parameters"`
-}
-
-type ToolParameters struct {
-	Type       ToolDataType            `json:"type"`
-	Required   []string                `json:"required,omitempty"`
-	Properties map[string]ToolProperty `json:"properties,omitempty"`
+	Name        string                  `json:"name"`
+	Description string                  `json:"description"`
+	Type        DataType                `json:"type"`
+	Required    []string                `json:"required,omitempty"`
+	Properties  map[string]ToolProperty `json:"properties,omitempty"`
 }
 
 type ToolProperty struct {
-	Type        ToolDataType `json:"type"`
-	Description string       `json:"description"`
-	Enum        []string     `json:"enum,omitempty"`
-}
-
-type ToolCall struct {
-	Function ToolFunction `json:"function"`
+	Type        DataType `json:"type"`
+	Description string   `json:"description"`
+	Enum        []string `json:"enum,omitempty"`
 }
 
 type ToolFunction struct {

@@ -18,9 +18,9 @@ func GenerateTaskId() string {
 }
 
 func CreateGenerateResponse(info *asynq.TaskInfo) (*GenerateResponse, error) {
-	var result GenerateResult
+	var output provider.ChatResponse
 	if len(info.Result) > 0 {
-		if err := json.Unmarshal(info.Result, &result); err != nil {
+		if err := json.Unmarshal(info.Result, &output); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal task response: %w", err)
 		}
 	}
@@ -29,7 +29,7 @@ func CreateGenerateResponse(info *asynq.TaskInfo) (*GenerateResponse, error) {
 		Task:   info.ID,
 		State:  info.State.String(),
 		Pool:   info.Queue,
-		Result: result,
+		Output: output,
 	}, nil
 }
 
@@ -48,66 +48,50 @@ func CreateGenerateTaskHandler(cfg *config.Config, reg *registry.Registry) func(
 
 func handleGenerateTask(log log.Logger, reg *registry.Registry) func(context.Context, *asynq.Task) error {
 	return func(ctx context.Context, t *asynq.Task) error {
-		var req GenerateRequest
+		var request GenerateRequest
 
 		startTime := time.Now()
 
-		if err := json.Unmarshal(t.Payload(), &req); err != nil {
+		if err := json.Unmarshal(t.Payload(), &request); err != nil {
 			return fmt.Errorf("failed to unmarshal payload: %w", err)
 		}
 
-		prov, err := reg.GetModelProvider(req.Model)
+		prov, err := reg.GetModelProvider(request.Input.Model)
 		if err != nil {
-			return fmt.Errorf("failed to load model '%s': %w", req.Model, err)
+			return fmt.Errorf("failed to load model '%s': %w", request.Input.Model, err)
 		}
 
-		log.Info("Handle Generate Task", "model", req.Model, "content", req.Content)
+		log.Info("Handle Generate Task", "model", request.Input.Model, "message", request.Input.Message.Content)
 
-		request := provider.ChatRequest{
-			Model: req.Model,
-			Messages: []provider.ChatMessage{
-				provider.UserMessage(req.Content),
-			},
-			Tools: []provider.ToolDefinition{
-				{
-					Name:        "get_current_time",
-					Description: "Get the current time in the specified timezone",
-					Parameters: provider.ToolParameters{
-						Type: provider.ToolTypeString,
-						Required: []string{
-							"timezone",
-						},
-						Properties: map[string]provider.ToolProperty{
-							"timezone": {
-								Type:        provider.ToolTypeString,
-								Description: "The timezone to use. Must be a IANA Time Zone",
-							},
-						},
-					},
+		request.Input.Tools = append(request.Input.Tools, provider.ToolDefinition{
+			Name:        "get_current_time",
+			Description: "Get the current time in the specified timezone",
+			Type:        provider.TypeString,
+			Required:    []string{"timezone"},
+			Properties: map[string]provider.ToolProperty{
+				"timezone": {
+					Type:        provider.TypeString,
+					Description: "The timezone to use. Must be a IANA Time Zone",
 				},
 			},
-		}
+		})
 
-		resp, err := prov.Chat(request)
+		response, err := prov.Chat(request.Input)
 		if err != nil {
 			return fmt.Errorf("failed to generate chat prompt: %w", err)
 		}
 
 		duration := time.Since(startTime).Seconds()
-		result := GenerateResult{
-			Content: resp.Messages[0].GetText(),
-			Model:   resp.Model,
-			Metadata: map[string]any{
-				"duration": duration,
-			},
+		response.Metadata = map[string]any{
+			"duration": duration,
 		}
 
 		// metrics.ClientGeneratePromptTasksDurationSeconds.WithLabelValues(oc.Endpoint, req.Model, req.Style).Observe(duration)
 
-		debug, _ := json.Marshal(resp)
+		debug, _ := json.Marshal(response)
 		log.Debug(string(debug))
 
-		data, err := json.Marshal(result)
+		data, err := json.Marshal(response)
 		if err != nil {
 			return fmt.Errorf("failed to marshal final response: %w", err)
 		}

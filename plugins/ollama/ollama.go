@@ -1,6 +1,8 @@
 package ollama
 
 import (
+	"log"
+
 	"github.com/mwantia/queueverse/pkg/plugin/provider"
 	"github.com/mwantia/queueverse/plugins/ollama/api"
 )
@@ -24,63 +26,76 @@ func (p *OllamaProvider) GetModels() (*[]provider.Model, error) {
 	return &resp, nil
 }
 
-func (p *OllamaProvider) Chat(req provider.ChatRequest) (*provider.ChatResponse, error) {
-	result := provider.ChatResponse{
-		Model:    req.Model,
-		Messages: make([]provider.ChatMessage, 0),
-	}
+func (p *OllamaProvider) Chat(input provider.ChatRequest) (*provider.ChatResponse, error) {
+	tools := make([]api.ToolDefinition, 0)
+	for _, tool := range input.Tools {
 
-	if err := p.Client.Chat(p.Context, CreateMessageRequest(req), func(resp api.ChatResponse) error {
-		message := provider.ChatMessage{
-			Role: provider.ChatRoleType(resp.Message.Role),
-			Content: []provider.ChatMessageContent{
-				{
-					Type: provider.ChatMessageText,
-					Text: resp.Message.Content,
+		properties := make(map[string]api.ToolProperty, 0)
+		for name, property := range tool.Properties {
+			properties[name] = api.ToolProperty{
+				Type:        string(property.Type),
+				Description: property.Description,
+				Enum:        property.Enum,
+			}
+		}
+
+		tools = append(tools, api.ToolDefinition{
+			Type: "function",
+			Function: api.ToolFunction{
+				Name:        tool.Name,
+				Description: tool.Description,
+				Parameters: api.ToolParameters{
+					Type:       string(tool.Type),
+					Required:   tool.Required,
+					Properties: properties,
 				},
 			},
-		}
-
-		toolcalls := make([]provider.ToolCall, 0)
-		for _, tc := range resp.Message.ToolCalls {
-			toolcalls = append(toolcalls, provider.ToolCall{
-				Function: provider.ToolFunction{
-					Index:     tc.Function.Index,
-					Name:      tc.Function.Name,
-					Arguments: tc.Function.Arguments,
-				},
-			})
-		}
-
-		message.Content = append(message.Content, provider.ChatMessageContent{
-			Type:      provider.ChatMessageToolUse,
-			Text:      "",
-			ToolCalls: toolcalls,
 		})
-		result.Messages = append(result.Messages, message)
+	}
+
+	request := api.ChatRequest{
+		Model: input.Model,
+		Messages: []api.ChatMessage{
+			{
+				Role:    "user",
+				Content: input.Message.Content,
+			},
+		},
+		Tools:       tools,
+		Stream:      false,
+		KeepAlive:   -1,
+		ContextSize: 4096,
+	}
+
+	var output provider.ChatResponse
+
+	if err := p.Client.Chat(p.Context, request, func(response api.ChatResponse) error {
+		log.Printf("%v", response)
 		return nil
 	}); err != nil {
 		return nil, err
 	}
 
-	return &result, nil
+	return &output, nil
 }
 
-func (p *OllamaProvider) Embed(req provider.EmbedRequest) (*provider.EmbedResponse, error) {
-	var embeddings [][]float32
+func (p *OllamaProvider) Embed(input provider.EmbedRequest) (*provider.EmbedResponse, error) {
+	request := api.EmbedRequest{
+		Model: input.Model,
+		Input: input.Message.Content,
+	}
 
-	if err := p.Client.Embed(p.Context, api.EmbedRequest{
-		Model: req.Model,
-		Input: req.Input,
-	}, func(resp api.EmbedResponse) error {
-		embeddings = resp.Embeddings
+	var output provider.EmbedResponse
+
+	if err := p.Client.Embed(p.Context, request, func(response api.EmbedResponse) error {
+		output = provider.EmbedResponse{
+			Model:      response.Model,
+			Embeddings: response.Embeddings,
+		}
 		return nil
 	}); err != nil {
 		return nil, err
 	}
 
-	return &provider.EmbedResponse{
-		Model:      req.Model,
-		Embeddings: embeddings,
-	}, nil
+	return &output, nil
 }

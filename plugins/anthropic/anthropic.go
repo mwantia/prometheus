@@ -12,27 +12,35 @@ import (
 func (p *AnthropicProvider) GetModels() (*[]provider.Model, error) {
 	return &[]provider.Model{
 		{
-			Name: string(anthropic.ModelClaude3Dot5HaikuLatest),
-			Metadata: map[string]any{
-				"size": 0,
-			},
+			Name:     string(anthropic.ModelClaude3Dot5HaikuLatest),
+			Metadata: map[string]any{},
 		},
 		{
-			Name: string(anthropic.ModelClaude3Dot5SonnetLatest),
-			Metadata: map[string]any{
-				"size": 0,
-			},
+			Name:     string(anthropic.ModelClaude3Dot5SonnetLatest),
+			Metadata: map[string]any{},
 		},
 	}, nil
 }
 
-func (p *AnthropicProvider) Chat(req provider.ChatRequest) (*provider.ChatResponse, error) {
-	resp, err := p.Client.CreateMessages(p.Context, CreateMessageRequest(req))
+func (p *AnthropicProvider) Chat(input provider.ChatRequest) (*provider.ChatResponse, error) {
+	request := anthropic.MessagesRequest{
+		Model: anthropic.Model(input.Model),
+		Messages: []anthropic.Message{
+			anthropic.NewUserTextMessage(input.Message.Content),
+		},
+	}
+
+	response, err := p.Client.CreateMessages(p.Context, request)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create messages: %w", err)
 	}
 
-	return CreateMessageResponse(resp)
+	return &provider.ChatResponse{
+		Model: string(response.Model),
+		Message: provider.Message{
+			Content: response.Content[0].GetText(),
+		},
+	}, nil
 }
 
 func (*AnthropicProvider) Embed(provider.EmbedRequest) (*provider.EmbedResponse, error) {

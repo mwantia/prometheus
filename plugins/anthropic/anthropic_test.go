@@ -34,11 +34,10 @@ func TestAnthropic(t *testing.T) {
 	}
 
 	t.Run("Anthropic.Chat", func(t *testing.T) {
-		req := provider.ChatRequest{
+		request := provider.ChatRequest{
 			Model: string(anthropic.ModelClaude3Dot5HaikuLatest),
-			Messages: []provider.ChatMessage{
-				// provider.UserMessage("Send a message to 'Roman Blake' over Discord and tell him that I might arrive late to the meeting."),
-				provider.UserMessage("Tell me the current time in germany."),
+			Message: provider.Message{
+				Content: "Tell me the current time in germany.",
 			},
 			Tools: []provider.ToolDefinition{
 				tools.TimeGetCurrent,
@@ -47,55 +46,22 @@ func TestAnthropic(t *testing.T) {
 			},
 		}
 
-		resp, err := plugin.Chat(req)
+		response, err := plugin.Chat(request)
 		if err != nil {
 			t.Fatalf("Failed to perform chat request: %v", err)
 		}
 
-		debug, _ := json.Marshal(resp)
-		log.Println(string(debug))
-
-		// This should result in a simple chat request without any additional tool calls
-		if len(resp.Messages) == 1 && len(resp.Messages[0].ToolCalls) == 0 {
-			log.Println(resp.Messages[0].Content)
-		} else {
-			for _, msg := range resp.Messages {
-				if len(msg.ToolCalls) > 0 {
-					for _, toolcall := range msg.ToolCalls {
-
-						output, err := executeToolCall(toolcall)
-						if err != nil {
-							t.Fatalf("failed to execute tool call: %v", err)
-						}
-
-						req.Messages = append(req.Messages, provider.ChatMessage{
-							ID:      msg.ID,
-							Role:    provider.ChatRoleTool,
-							Content: output,
-						})
-					}
-				} else {
-					req.Messages = append(req.Messages, msg)
-				}
-			}
-		}
-
-		resp, err = plugin.Chat(req)
-		if err != nil {
-			t.Fatalf("Failed to perform chat request: %v", err)
-		}
-
-		debug, _ = json.Marshal(resp)
+		debug, _ := json.Marshal(response)
 		log.Println(string(debug))
 	})
 }
 
-func executeToolCall(toolcall provider.ToolCall) (string, error) {
-	switch toolcall.Function.Name {
+func executeToolCall(function provider.ToolFunction) (string, error) {
+	switch function.Name {
 	case tools.TimeGetCurrent.Name:
-		timezone, exist := toolcall.Function.Arguments["timezone"]
+		timezone, exist := function.Arguments["timezone"]
 		if !exist {
-			return "", fmt.Errorf("failed too call '%s': argument 'timezone' not provided", toolcall.Function.Name)
+			return "", fmt.Errorf("failed too call '%s': argument 'timezone' not provided", function.Name)
 		}
 
 		location, err := time.LoadLocation(timezone.(string))

@@ -3,12 +3,15 @@ package ollama
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"log"
 	"testing"
+	"time"
 
 	"github.com/mwantia/queueverse/internal/config"
 	"github.com/mwantia/queueverse/pkg/plugin/base"
 	"github.com/mwantia/queueverse/pkg/plugin/provider"
+	"github.com/mwantia/queueverse/plugins/ollama/tools"
 )
 
 func TestOllama(t *testing.T) {
@@ -32,59 +35,13 @@ func TestOllama(t *testing.T) {
 	t.Run("Ollama.Chat", func(t *testing.T) {
 		resp, err := plugin.Chat(provider.ChatRequest{
 			Model: "llama3.2:latest",
-			Messages: []provider.ChatMessage{
-				provider.UserMessage("Send a message to Roman Blake over Discord and tell him that I might arrive late to the meeting."),
+			Message: provider.Message{
+				Content: "Send a message to Roman Blake over Discord and tell him that I might arrive late to the meeting.",
 			},
 			Tools: []provider.ToolDefinition{
-				{
-					Name:        "send_discord_pm",
-					Description: "Sends a private message over Discord to the specified user.",
-					Parameters: provider.ToolParameters{
-						Type:     provider.ToolTypeBoolean,
-						Required: []string{},
-						Properties: map[string]provider.ToolProperty{
-							"username": {
-								Type:        provider.ToolTypeString,
-								Description: "The username the message will be send to",
-							},
-							"message": {
-								Type:        provider.ToolTypeString,
-								Description: "The message send to over Discord (Supports markdown).",
-							},
-						},
-					},
-				},
-				{
-					Name:        "get_discord_contact",
-					Description: "Returns the username within Discord for the specified search.",
-					Parameters: provider.ToolParameters{
-						Type:     provider.ToolTypeString,
-						Required: []string{},
-						Properties: map[string]provider.ToolProperty{
-							"search": {
-								Type: provider.ToolTypeString,
-								Description: `Defines the search query used to find the correct contact/username.
-								This can be the displayname, surname, lastname or other available contact information`,
-							},
-						},
-					},
-				},
-				/*{
-					Name:        "get_current_time",
-					Description: "Get the current time in the specified timezone",
-					Parameters: provider.ToolParameters{
-						Type: provider.ToolTypeString,
-						Required: []string{
-							"timezone",
-						},
-						Properties: map[string]provider.ToolProperty{
-							"timezone": {
-								Type:        provider.ToolTypeString,
-								Description: "The timezone to use. Must be a IANA Time Zone",
-							},
-						},
-					},
-				},*/
+				tools.TimeGetCurrent,
+				tools.DiscordListContact,
+				tools.DiscordSendPM,
 			},
 		})
 		if err != nil {
@@ -95,4 +52,26 @@ func TestOllama(t *testing.T) {
 		log.Println(string(debug))
 		t.Log(string(debug))
 	})
+}
+
+func executeToolCall(function provider.ToolFunction) (string, error) {
+	switch function.Name {
+	case tools.TimeGetCurrent.Name:
+		timezone, exist := function.Arguments["timezone"]
+		if !exist {
+			return "", fmt.Errorf("failed too call '%s': argument 'timezone' not provided", function.Name)
+		}
+
+		location, err := time.LoadLocation(timezone.(string))
+		if err != nil {
+			return "", fmt.Errorf("failed to load location: ")
+		}
+
+		return time.Now().In(location).Format("Mon Jan 2 15:04:05"), nil
+
+	case tools.DiscordListContact.Name:
+
+	case tools.DiscordSendPM.Name:
+	}
+	return "", nil
 }
