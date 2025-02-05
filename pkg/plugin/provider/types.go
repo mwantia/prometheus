@@ -1,5 +1,7 @@
 package provider
 
+import "context"
+
 type DataType string
 
 const (
@@ -19,10 +21,11 @@ type Message struct {
 }
 
 type ChatRequest struct {
-	Model    string           `json:"model"`
-	Message  Message          `json:"message"`
-	Tools    []ToolDefinition `json:"tools,omitempty"`
-	Metadata map[string]any   `json:"metadata,omitempty"`
+	Model    string              `json:"model"`
+	Message  Message             `json:"message"`
+	Tools    []ToolDefinition    `json:"tools,omitempty"`
+	Metadata map[string]any      `json:"metadata,omitempty"`
+	Handler  ToolFunctionHandler `json:"-"`
 }
 
 type ChatResponse struct {
@@ -62,3 +65,5 @@ type ToolFunction struct {
 	Name      string         `json:"name"`
 	Arguments map[string]any `json:"arguments,omitempty"`
 }
+
+type ToolFunctionHandler func(context.Context, ToolFunction) (string, error)

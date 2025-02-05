@@ -39,40 +39,41 @@ func (c *Config) GetPluginConfig(name string) *PluginConfig {
 	return nil
 }
 
-func (cfg *Config) GetPluginConfigMap(name string) (map[string]interface{}, error) {
+func (cfg *Config) GetPluginConfigMap(name string) map[string]interface{} {
+	pcm := make(map[string]interface{}, 0)
+
 	for _, plugin := range cfg.Plugins {
 		if plugin.Name == name {
-			result := make(map[string]interface{})
 
 			if plugin.Config != nil {
 				attrs, diags := plugin.Config.Body.JustAttributes()
 				if diags.HasErrors() {
-					return nil, fmt.Errorf("failed to get config attributes: %s", diags.Error())
+					return pcm
 				}
 
 				for name, attr := range attrs {
 					value, diags := attr.Expr.Value(&hcl.EvalContext{})
 					if diags.HasErrors() {
-						return nil, fmt.Errorf("failed to evaluate '%s': %s", name, diags.Error())
+						return pcm
 					}
 
 					switch {
 					case value.Type() == cty.String:
-						result[name] = value.AsString()
+						pcm[name] = value.AsString()
 					case value.Type() == cty.Number:
 						f, _ := value.AsBigFloat().Float64()
-						result[name] = f
+						pcm[name] = f
 					case value.Type() == cty.Bool:
-						result[name] = value.True()
+						pcm[name] = value.True()
 					default:
-						result[name] = value.GoString()
+						pcm[name] = value.GoString()
 					}
 				}
 			}
 
-			return result, nil
+			return pcm
 		}
 	}
 
-	return make(map[string]interface{}, 0), nil
+	return pcm
 }

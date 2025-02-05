@@ -137,13 +137,9 @@ func (a *Agent) RunLocalPlugin(path string, arg ...string) error {
 		return fmt.Errorf("failed to get plugin capabilities: %w", err)
 	}
 
-	cfgmap, err := a.Config.GetPluginConfigMap(info.Name)
-	if err != nil {
-		client.Kill()
-		return fmt.Errorf("failed to load plugin config: %w", err)
-	}
+	pcm := a.Config.GetPluginConfigMap(info.Name)
 
-	if err := plugin.SetConfig(&base.PluginConfig{ConfigMap: cfgmap}); err != nil {
+	if err := plugin.SetConfig(&base.PluginConfig{ConfigMap: pcm}); err != nil {
 		client.Kill()
 		return fmt.Errorf("failed to set plugin config: %w", err)
 	}
