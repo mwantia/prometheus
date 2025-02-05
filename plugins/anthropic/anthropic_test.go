@@ -15,48 +15,48 @@ import (
 	"github.com/mwantia/queueverse/plugins/anthropic/tools"
 )
 
-func TestAnthropic(t *testing.T) {
-	cfg, err := config.ParseConfig("../../tests/config.hcl")
+const (
+	ConfigPath = "../../tests/config.hcl"
+)
+
+func TestAnthropicProvider(t *testing.T) {
+	cfg, err := config.ParseConfig(ConfigPath)
 	if err != nil {
-		t.Fatalf("Failed to parse test config: %v", err)
+		t.Fatalf("Failed to parse config: %v", err)
 	}
 
-	cfgmap, err := cfg.GetPluginConfigMap(PluginName)
-	if err != nil {
-		t.Fatalf("Failed to load plugin config: %v", err)
-	}
-
+	pcm := cfg.GetPluginConfigMap(PluginName)
 	plugin := AnthropicProvider{
 		Context: context.TODO(),
 	}
-	if err := plugin.SetConfig(&base.PluginConfig{ConfigMap: cfgmap}); err != nil {
+
+	if err := plugin.SetConfig(&base.PluginConfig{ConfigMap: pcm}); err != nil {
 		t.Fatalf("Failed to set plugin config: %v", err)
 	}
 
-	t.Run("Anthropic.Chat", func(t *testing.T) {
-		request := provider.ChatRequest{
-			Model: string(anthropic.ModelClaude3Dot5HaikuLatest),
-			Message: provider.Message{
-				Content: "Tell me the current time in germany.",
-			},
-			Tools: []provider.ToolDefinition{
-				tools.TimeGetCurrent,
-				tools.DiscordListContact,
-				tools.DiscordSendPM,
-			},
-		}
+	request := provider.ChatRequest{
+		Model: string(anthropic.ModelClaude3Dot5HaikuLatest),
+		Message: provider.Message{
+			Content: "Tell me the current time in germany.",
+		},
+		Tools: []provider.ToolDefinition{
+			tools.TimeGetCurrent,
+			tools.DiscordListContact,
+			tools.DiscordSendPM,
+		},
+		Handler: executeToolCall,
+	}
 
-		response, err := plugin.Chat(request)
-		if err != nil {
-			t.Fatalf("Failed to perform chat request: %v", err)
-		}
+	response, err := plugin.Chat(request)
+	if err != nil {
+		t.Fatalf("Failed to perform chat request: %v", err)
+	}
 
-		debug, _ := json.Marshal(response)
-		log.Println(string(debug))
-	})
+	debug, _ := json.Marshal(response)
+	log.Println(string(debug))
 }
 
-func executeToolCall(function provider.ToolFunction) (string, error) {
+func executeToolCall(ctx context.Context, function provider.ToolFunction) (string, error) {
 	switch function.Name {
 	case tools.TimeGetCurrent.Name:
 		timezone, exist := function.Arguments["timezone"]

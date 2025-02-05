@@ -14,44 +14,44 @@ import (
 	"github.com/mwantia/queueverse/plugins/ollama/tools"
 )
 
-func TestOllama(t *testing.T) {
-	cfg, err := config.ParseConfig("../../tests/config.hcl")
+const (
+	ConfigPath = "../../tests/config.hcl"
+)
+
+func TestOllamaProvider(t *testing.T) {
+	cfg, err := config.ParseConfig(ConfigPath)
 	if err != nil {
 		t.Fatalf("Failed to parse test config: %v", err)
 	}
 
-	cfgmap, err := cfg.GetPluginConfigMap(PluginName)
-	if err != nil {
-		t.Fatalf("Failed to load plugin config: %v", err)
-	}
+	pcm := cfg.GetPluginConfigMap(PluginName)
 
 	plugin := OllamaProvider{
 		Context: context.TODO(),
 	}
-	if err := plugin.SetConfig(&base.PluginConfig{ConfigMap: cfgmap}); err != nil {
+	if err := plugin.SetConfig(&base.PluginConfig{ConfigMap: pcm}); err != nil {
 		t.Fatalf("Failed to set plugin config: %v", err)
 	}
 
-	t.Run("Ollama.Chat", func(t *testing.T) {
-		resp, err := plugin.Chat(provider.ChatRequest{
-			Model: "llama3.2:latest",
-			Message: provider.Message{
-				Content: "Send a message to Roman Blake over Discord and tell him that I might arrive late to the meeting.",
-			},
-			Tools: []provider.ToolDefinition{
-				tools.TimeGetCurrent,
-				tools.DiscordListContact,
-				tools.DiscordSendPM,
-			},
-		})
-		if err != nil {
-			t.Fatalf("Failed to perform chat request: %v", err)
-		}
+	request := provider.ChatRequest{
+		Model: "llama3.2:latest",
+		Message: provider.Message{
+			Content: "Send a message to Roman Blake over Discord and tell him that I might arrive late to the meeting.",
+		},
+		Tools: []provider.ToolDefinition{
+			tools.TimeGetCurrent,
+			tools.DiscordListContact,
+			tools.DiscordSendPM,
+		},
+	}
 
-		debug, _ := json.Marshal(resp)
-		log.Println(string(debug))
-		t.Log(string(debug))
-	})
+	resp, err := plugin.Chat(request)
+	if err != nil {
+		t.Fatalf("Failed to perform chat request: %v", err)
+	}
+
+	debug, _ := json.Marshal(resp)
+	log.Println(string(debug))
 }
 
 func executeToolCall(function provider.ToolFunction) (string, error) {
