@@ -1,31 +1,31 @@
 package tools
 
-import "github.com/mwantia/queueverse/pkg/plugin/provider"
+import "github.com/mwantia/queueverse/pkg/plugin/shared"
 
-var DiscordSendPM = provider.ToolDefinition{
+var DiscordSendPM = shared.ToolDefinition{
 	Name:     "discord_send_pm",
-	Type:     provider.TypeBoolean,
+	Type:     shared.TypeBoolean,
 	Required: []string{"user", "message"},
 	Description: `Sends a private message over Discord to a user.
 	The message property supports markdown to allow, for example bold or cursiv text.
 	It should only be used when the user wants to send a message, or even a tool response to another user.
 	You must define the intend of the message, as well as the user it was send or requested from.
 	Use templates like '{{ .displayname }}' to refer to the user making the request (e.g. Displayname = 'Max Mustermann').`,
-	Properties: map[string]provider.ToolProperty{
+	Properties: map[string]shared.ToolProperty{
 		"user": {
-			Type:        provider.TypeString,
+			Type:        shared.TypeString,
 			Description: "The user the private message will be send to.",
 		},
 		"message": {
-			Type:        provider.TypeString,
+			Type:        shared.TypeString,
 			Description: "The private message to send over Discord; Supports markdown language.",
 		},
 	},
 }
 
-var DiscordListContact = provider.ToolDefinition{
+var DiscordListContact = shared.ToolDefinition{
 	Name:     "discord_list_contact",
-	Type:     provider.TypeObject,
+	Type:     shared.TypeObject,
 	Required: []string{"query"},
 	Description: `Retrieves a list of usernames available within Discord.
 	Can be used in combination with other Discord tools that require information about a user.
@@ -37,9 +37,9 @@ var DiscordListContact = provider.ToolDefinition{
 	 * user.displayname
 	 * user.mail
 	 * user.status`,
-	Properties: map[string]provider.ToolProperty{
+	Properties: map[string]shared.ToolProperty{
 		"query": {
-			Type: provider.TypeString,
+			Type: shared.TypeString,
 			Description: `Defines the search query used to find the correct user.
 			 This can be the displayname, surname, lastname or other available contact information`,
 		},
