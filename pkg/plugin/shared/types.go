@@ -1,6 +1,4 @@
-package provider
-
-import "context"
+package shared
 
 type DataType string
 
@@ -21,11 +19,9 @@ type Message struct {
 }
 
 type ChatRequest struct {
-	Model    string              `json:"model"`
-	Message  Message             `json:"message"`
-	Tools    []ToolDefinition    `json:"tools,omitempty"`
-	Metadata map[string]any      `json:"metadata,omitempty"`
-	Handler  ToolFunctionHandler `json:"-"`
+	Model    string         `json:"model"`
+	Message  Message        `json:"message"`
+	Metadata map[string]any `json:"metadata,omitempty"`
 }
 
 type ChatResponse struct {
@@ -58,6 +54,7 @@ type ToolProperty struct {
 	Type        DataType `json:"type"`
 	Description string   `json:"description"`
 	Enum        []string `json:"enum,omitempty"`
+	Required    bool     `json:"required,omitempty"`
 }
 
 type ToolFunction struct {
@@ -65,5 +62,3 @@ type ToolFunction struct {
 	Name      string         `json:"name"`
 	Arguments map[string]any `json:"arguments,omitempty"`
 }
-
-type ToolFunctionHandler func(context.Context, ToolFunction) (string, error)
