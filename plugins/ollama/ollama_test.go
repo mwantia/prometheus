@@ -31,15 +31,14 @@ func TestOllamaProvider(t *testing.T) {
 		t.Fatalf("Failed to set plugin config: %v", err)
 	}
 
-	handler := tools.NewTest()
 	request := shared.ChatRequest{
-		Model: "llama3.2:latest",
+		Model: "llama3.1:8b",
 		Message: shared.Message{
-			Content: "Send a message to Roman Blake over Discord and tell him that I might arrive late to the meeting.",
+			Content: "Tell me the current time in germany.",
 		},
 	}
 
-	resp, err := plugin.Chat(request, handler)
+	resp, err := plugin.Chat(request, tools.NewTest())
 	if err != nil {
 		t.Fatalf("Failed to perform chat request: %v", err)
 	}

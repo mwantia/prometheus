@@ -32,7 +32,6 @@ func TestAnthropicProvider(t *testing.T) {
 		t.Fatalf("Failed to set plugin config: %v", err)
 	}
 
-	handler := tools.NewTest()
 	request := shared.ChatRequest{
 		Model: string(anthropic.ModelClaude3Dot5HaikuLatest),
 		Message: shared.Message{
@@ -40,7 +39,7 @@ func TestAnthropicProvider(t *testing.T) {
 		},
 	}
 
-	response, err := plugin.Chat(request, handler)
+	response, err := plugin.Chat(request, tools.NewTest())
 	if err != nil {
 		t.Fatalf("Failed to perform chat request: %v", err)
 	}

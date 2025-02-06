@@ -1,8 +1,6 @@
 package ollama
 
 import (
-	"log"
-
 	"github.com/mwantia/queueverse/pkg/plugin/shared"
 	"github.com/mwantia/queueverse/plugins/ollama/api"
 )
@@ -67,16 +65,52 @@ func (p *OllamaProvider) Chat(input shared.ChatRequest, handler shared.ProviderT
 		ContextSize: 4096,
 	}
 
-	var output shared.ChatResponse
+	var result api.ChatResponse
+	hand := func(response api.ChatResponse) error {
+		result = response
+		return nil
+	}
 
 	if err := p.Client.Chat(p.Context, request, func(response api.ChatResponse) error {
-		log.Printf("%v", response)
-		return nil
+		request.Messages = append(request.Messages, response.Message)
+		// Check if we have an uncommon response without any toolcalls:
+		if len(response.Message.ToolCalls) > 0 {
+			// Only add the system prompt, if we have a tool response
+			request.Messages = append([]api.ChatMessage{
+				{
+					Role: "system",
+					Content: `You are a helpful assistant with tool calling capabilities.
+					When you receive a tool call response, use the output to format an answer to the orginal user question.`,
+				},
+			}, request.Messages...)
+
+			for _, toolcall := range response.Message.ToolCalls {
+				result, err := handler.Execute(p.Context, shared.ToolFunction{
+					Index:     0,
+					Name:      toolcall.Function.Name,
+					Arguments: toolcall.Function.Arguments,
+				})
+				if err != nil {
+					return err
+				}
+				request.Messages = append(request.Messages, api.ChatMessage{
+					Role:    "tool",
+					Content: result,
+				})
+			}
+		}
+
+		return p.Client.Chat(p.Context, request, hand)
 	}); err != nil {
 		return nil, err
 	}
 
-	return &output, nil
+	return &shared.ChatResponse{
+		Model: result.Model,
+		Message: shared.Message{
+			Content: result.Message.Content,
+		},
+	}, nil
 }
 
 func (p *OllamaProvider) Embed(input shared.EmbedRequest) (*shared.EmbedResponse, error) {

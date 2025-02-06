@@ -51,12 +51,9 @@ func handleGenerateTask(log log.Logger, reg *registry.Registry) func(context.Con
 	return func(ctx context.Context, t *asynq.Task) error {
 		var request GenerateRequest
 
-		payload := t.Payload()
 		startTime := time.Now()
 
-		log.Debug(string(payload))
-
-		if err := json.Unmarshal(payload, &request); err != nil {
+		if err := json.Unmarshal(t.Payload(), &request); err != nil {
 			return fmt.Errorf("failed to unmarshal payload: %w", err)
 		}
 
@@ -67,19 +64,15 @@ func handleGenerateTask(log log.Logger, reg *registry.Registry) func(context.Con
 
 		log.Info("Handle Generate Task", "model", request.Input.Model, "message", request.Input.Message.Content)
 
-		handler := tools.NewTest()
-		response, err := prov.Chat(request.Input, handler)
+		response, err := prov.Chat(request.Input, tools.NewTest())
 		if err != nil {
-			log.Error("failed to generate chat prompt", "error", err)
+			log.Error("failed to generate chat prompt", "error", err, "response", response)
 			return fmt.Errorf("failed to generate chat prompt: %w", err)
 		}
 
-		duration := time.Since(startTime).Seconds()
 		response.Metadata = map[string]any{
-			"duration": duration,
+			"duration": time.Since(startTime).Seconds(),
 		}
-
-		// metrics.ClientGeneratePromptTasksDurationSeconds.WithLabelValues(oc.Endpoint, req.Model, req.Style).Observe(duration)
 
 		debug, _ := json.Marshal(response)
 		log.Debug(string(debug))

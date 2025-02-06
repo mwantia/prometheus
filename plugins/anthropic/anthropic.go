@@ -47,9 +47,6 @@ func (p *AnthropicProvider) Chat(input shared.ChatRequest, handler shared.Provid
 		})
 	}
 
-	p.Logger.Info("Tools", "len", len(handler.GetTools()))
-	p.Logger.Info("Tools", "len", len(tools))
-
 	request := anthropic.MessagesRequest{
 		MaxTokens: 100,
 		Model:     anthropic.Model(input.Model),
