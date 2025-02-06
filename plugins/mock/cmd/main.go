@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 
 	hclog "github.com/hashicorp/go-hclog"
 	"github.com/mwantia/queueverse/pkg/plugin"
@@ -10,12 +9,10 @@ import (
 )
 
 func main() {
-	if err := plugin.ServeContext(func(ctx context.Context, logger hclog.Logger) interface{} {
+	plugin.ServeContext(func(ctx context.Context, logger hclog.Logger) interface{} {
 		return &mock.MockProvider{
 			Context: ctx,
 			Logger:  logger,
 		}
-	}); err != nil {
-		log.Panic(err)
-	}
+	})
 }

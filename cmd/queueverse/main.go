@@ -23,7 +23,7 @@ var Config *config.Config
 var (
 	Root = &cobra.Command{
 		Use:   "queueverse",
-		Short: "Ollama queue system and tool calling via plugin support",
+		Short: "LLM queue system and tool calling via plugin support",
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			cfg, err := config.ParseConfig(ConfigFlag)
 			if err != nil {
@@ -67,7 +67,8 @@ var (
 
 			plugin, exists := agent.Plugins[name]
 			if exists && plugin != nil {
-				return plugin()
+				plugin()
+				return nil
 			}
 
 			return fmt.Errorf("unknown plugin: %s", args[0])

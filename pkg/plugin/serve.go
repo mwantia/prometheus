@@ -2,7 +2,6 @@ package plugin
 
 import (
 	"context"
-	"fmt"
 
 	hclog "github.com/hashicorp/go-hclog"
 	"github.com/mwantia/queueverse/pkg/plugin/provider"
@@ -13,17 +12,17 @@ type PluginFactory func(log hclog.Logger) interface{}
 
 type PluginContextFactory func(ctx context.Context, log hclog.Logger) interface{}
 
-func Serve(pf PluginFactory) error {
+func Serve(pf PluginFactory) {
 	logger := hclog.New(&hclog.LoggerOptions{
 		Level:      hclog.Trace,
 		JSONFormat: true,
 	})
 
 	plugin := pf(logger)
-	return servePlugin(plugin, logger)
+	servePlugin(plugin, logger)
 }
 
-func ServeContext(pcf PluginContextFactory) error {
+func ServeContext(pcf PluginContextFactory) {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -33,20 +32,16 @@ func ServeContext(pcf PluginContextFactory) error {
 	})
 
 	plugin := pcf(ctx, logger)
-	return servePlugin(plugin, logger)
+	servePlugin(plugin, logger)
 }
 
-func servePlugin(plugin interface{}, logger hclog.Logger) error {
-	return func() error {
-		switch impl := plugin.(type) {
-		case provider.ProviderPlugin:
-			return provider.Serve(impl, logger)
-		case tools.ToolPlugin:
-			return nil
-		default:
-			return fmt.Errorf(`unsupported plugin type.
-			Ensure that all funcs are defined correctly, even in defaults.go.
-			`)
-		}
-	}()
+func servePlugin(plugin interface{}, logger hclog.Logger) {
+	switch impl := plugin.(type) {
+	case provider.ProviderPlugin:
+		provider.Serve(impl, logger)
+	case tools.ToolPlugin:
+		tools.Serve(impl, logger)
+	default:
+		panic(`unsupported plugin type. Ensure that all funcs are defined correctly, even in defaults.go.`)
+	}
 }
