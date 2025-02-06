@@ -3,16 +3,14 @@ package anthropic
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"log"
 	"testing"
-	"time"
 
 	"github.com/liushuangls/go-anthropic/v2"
 	"github.com/mwantia/queueverse/internal/config"
+	"github.com/mwantia/queueverse/internal/tools"
 	"github.com/mwantia/queueverse/pkg/plugin/base"
-	"github.com/mwantia/queueverse/pkg/plugin/provider"
-	"github.com/mwantia/queueverse/plugins/anthropic/tools"
+	"github.com/mwantia/queueverse/pkg/plugin/shared"
 )
 
 const (
@@ -34,46 +32,19 @@ func TestAnthropicProvider(t *testing.T) {
 		t.Fatalf("Failed to set plugin config: %v", err)
 	}
 
-	request := provider.ChatRequest{
+	handler := tools.NewTest()
+	request := shared.ChatRequest{
 		Model: string(anthropic.ModelClaude3Dot5HaikuLatest),
-		Message: provider.Message{
+		Message: shared.Message{
 			Content: "Tell me the current time in germany.",
 		},
-		Tools: []provider.ToolDefinition{
-			tools.TimeGetCurrent,
-			tools.DiscordListContact,
-			tools.DiscordSendPM,
-		},
-		Handler: executeToolCall,
 	}
 
-	response, err := plugin.Chat(request)
+	response, err := plugin.Chat(request, handler)
 	if err != nil {
 		t.Fatalf("Failed to perform chat request: %v", err)
 	}
 
 	debug, _ := json.Marshal(response)
 	log.Println(string(debug))
-}
-
-func executeToolCall(ctx context.Context, function provider.ToolFunction) (string, error) {
-	switch function.Name {
-	case tools.TimeGetCurrent.Name:
-		timezone, exist := function.Arguments["timezone"]
-		if !exist {
-			return "", fmt.Errorf("failed too call '%s': argument 'timezone' not provided", function.Name)
-		}
-
-		location, err := time.LoadLocation(timezone.(string))
-		if err != nil {
-			return "", fmt.Errorf("failed to load location: ")
-		}
-
-		return time.Now().In(location).Format("Mon Jan 2 15:04:05"), nil
-
-	case tools.DiscordListContact.Name:
-
-	case tools.DiscordSendPM.Name:
-	}
-	return "", nil
 }

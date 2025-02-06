@@ -2,14 +2,15 @@ package provider
 
 import (
 	"github.com/mwantia/queueverse/pkg/plugin/base"
+	"github.com/mwantia/queueverse/pkg/plugin/shared"
 )
 
 type ProviderPlugin interface {
 	base.BasePlugin
 
-	GetModels() (*[]Model, error)
+	GetModels() (*[]shared.Model, error)
 
-	Chat(ChatRequest) (*ChatResponse, error)
+	Chat(shared.ChatRequest, shared.ProviderToolHandler) (*shared.ChatResponse, error)
 
-	Embed(EmbedRequest) (*EmbedResponse, error)
+	Embed(shared.EmbedRequest) (*shared.EmbedResponse, error)
 }

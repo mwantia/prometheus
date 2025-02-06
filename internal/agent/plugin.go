@@ -18,25 +18,27 @@ import (
 	"github.com/mwantia/queueverse/plugins/ollama"
 )
 
-var Plugins = map[string]PluginServe{
-	"mock": func() error {
-		return plugin.ServeContext(func(ctx context.Context, logger hclog.Logger) interface{} {
+type PluginServeHandler func()
+
+var Plugins = map[string]PluginServeHandler{
+	"mock": func() {
+		plugin.ServeContext(func(ctx context.Context, logger hclog.Logger) interface{} {
 			return &mock.MockProvider{
 				Context: ctx,
 				Logger:  logger,
 			}
 		})
 	},
-	"ollama": func() error {
-		return plugin.ServeContext(func(ctx context.Context, logger hclog.Logger) interface{} {
+	"ollama": func() {
+		plugin.ServeContext(func(ctx context.Context, logger hclog.Logger) interface{} {
 			return &ollama.OllamaProvider{
 				Context: ctx,
 				Logger:  logger,
 			}
 		})
 	},
-	"anthropic": func() error {
-		return plugin.ServeContext(func(ctx context.Context, logger hclog.Logger) interface{} {
+	"anthropic": func() {
+		plugin.ServeContext(func(ctx context.Context, logger hclog.Logger) interface{} {
 			return &anthropic.AnthropicProvider{
 				Context: ctx,
 				Logger:  logger,
@@ -44,8 +46,6 @@ var Plugins = map[string]PluginServe{
 		})
 	},
 }
-
-type PluginServe func() error
 
 func (a *Agent) serveLocalPlugins() error {
 	files, err := os.ReadDir(a.Config.PluginDir)

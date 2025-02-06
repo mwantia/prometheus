@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/mwantia/queueverse/pkg/plugin/base"
+	"github.com/mwantia/queueverse/pkg/plugin/shared"
 )
 
 type RpcServer struct {
@@ -11,8 +12,8 @@ type RpcServer struct {
 	Impl ToolPlugin
 }
 
-func (rs *RpcServer) GetParameters(_ struct{}, resp *ToolParameters) error {
-	r, err := rs.Impl.GetParameters()
+func (rs *RpcServer) GetDefinition(_ struct{}, resp *shared.ToolDefinition) error {
+	r, err := rs.Impl.GetDefinition()
 	if err != nil {
 		return fmt.Errorf("error performing server call: %w", err)
 	}
@@ -21,7 +22,7 @@ func (rs *RpcServer) GetParameters(_ struct{}, resp *ToolParameters) error {
 	return nil
 }
 
-func (rs *RpcServer) Handle(ctx *ToolContext, resp *error) error {
+func (rs *RpcServer) Handle(ctx *shared.ToolContext, resp *error) error {
 	*resp = rs.Impl.Handle(ctx)
 	return *resp
 }

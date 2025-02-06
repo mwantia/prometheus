@@ -5,13 +5,13 @@ import (
 
 	"github.com/liushuangls/go-anthropic/v2"
 	"github.com/liushuangls/go-anthropic/v2/jsonschema"
-	"github.com/mwantia/queueverse/pkg/plugin/provider"
+	"github.com/mwantia/queueverse/pkg/plugin/shared"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func (p *AnthropicProvider) GetModels() (*[]provider.Model, error) {
-	return &[]provider.Model{
+func (p *AnthropicProvider) GetModels() (*[]shared.Model, error) {
+	return &[]shared.Model{
 		{
 			Name:     string(anthropic.ModelClaude3Dot5HaikuLatest),
 			Metadata: map[string]any{},
@@ -23,9 +23,10 @@ func (p *AnthropicProvider) GetModels() (*[]provider.Model, error) {
 	}, nil
 }
 
-func (p *AnthropicProvider) Chat(input provider.ChatRequest) (*provider.ChatResponse, error) {
+func (p *AnthropicProvider) Chat(input shared.ChatRequest, handler shared.ProviderToolHandler) (*shared.ChatResponse, error) {
 	tools := make([]anthropic.ToolDefinition, 0)
-	for _, tool := range input.Tools {
+	for _, tool := range handler.GetTools() {
+
 		properties := make(map[string]jsonschema.Definition, 0)
 		for name, property := range tool.Properties {
 			properties[name] = jsonschema.Definition{
@@ -45,6 +46,9 @@ func (p *AnthropicProvider) Chat(input provider.ChatRequest) (*provider.ChatResp
 			},
 		})
 	}
+
+	p.Logger.Info("Tools", "len", len(handler.GetTools()))
+	p.Logger.Info("Tools", "len", len(tools))
 
 	request := anthropic.MessagesRequest{
 		MaxTokens: 100,
@@ -76,15 +80,15 @@ func (p *AnthropicProvider) Chat(input provider.ChatRequest) (*provider.ChatResp
 		}
 
 		if use == nil {
-			return &provider.ChatResponse{
+			return &shared.ChatResponse{
 				Model: string(response.Model),
-				Message: provider.Message{
+				Message: shared.Message{
 					Content: response.Content[0].GetText(),
 				},
 			}, nil
 		}
 
-		function := provider.ToolFunction{
+		function := shared.ToolFunction{
 			Index: 0,
 			Name:  use.Name,
 		}
@@ -92,7 +96,7 @@ func (p *AnthropicProvider) Chat(input provider.ChatRequest) (*provider.ChatResp
 			return nil, err
 		}
 
-		result, err := input.Handler(p.Context, function)
+		result, err := handler.Execute(p.Context, function)
 		if err != nil {
 			return nil, err
 		}
@@ -103,6 +107,6 @@ func (p *AnthropicProvider) Chat(input provider.ChatRequest) (*provider.ChatResp
 	return nil, fmt.Errorf("max attempts reached")
 }
 
-func (*AnthropicProvider) Embed(provider.EmbedRequest) (*provider.EmbedResponse, error) {
+func (*AnthropicProvider) Embed(shared.EmbedRequest) (*shared.EmbedResponse, error) {
 	return nil, status.Error(codes.Unavailable, "Embed models are not supported")
 }

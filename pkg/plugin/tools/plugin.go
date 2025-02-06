@@ -3,6 +3,7 @@ package tools
 import (
 	"net/rpc"
 
+	"github.com/hashicorp/go-hclog"
 	goplugin "github.com/hashicorp/go-plugin"
 	"github.com/mwantia/queueverse/pkg/plugin/base"
 )
@@ -12,20 +13,20 @@ type ToolPluginImpl struct {
 	Impl ToolPlugin
 }
 
-func Serve(plugin ToolPlugin) error {
+func Serve(impl ToolPlugin, logger hclog.Logger) {
 	goplugin.Serve(&goplugin.ServeConfig{
 		HandshakeConfig: base.Handshake,
 		Plugins: map[string]goplugin.Plugin{
 			base.PluginBaseType: &base.BasePluginImpl{
-				Impl: plugin,
+				Impl: impl,
 			},
 			base.PluginProviderType: &ToolPluginImpl{
-				Impl: plugin,
+				Impl: impl,
 			},
 		},
 		GRPCServer: goplugin.DefaultGRPCServer,
+		Logger:     logger,
 	})
-	return nil
 }
 
 func (impl *ToolPluginImpl) Server(*goplugin.MuxBroker) (interface{}, error) {

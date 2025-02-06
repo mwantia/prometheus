@@ -1,6 +1,7 @@
 package tools
 
 import (
+	"github.com/mwantia/queueverse/pkg/plugin/shared"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
@@ -11,11 +12,11 @@ func (*UnimplementedToolPlugin) GetName() (*string, error) {
 	return nil, status.Error(codes.Unimplemented, "Not implemented")
 }
 
-func (*UnimplementedToolPlugin) GetParameters() (*ToolParameters, error) {
+func (*UnimplementedToolPlugin) GetDefinition() (*shared.ToolDefinition, error) {
 	return nil, status.Error(codes.Unimplemented, "Not implemented")
 }
 
-func (*UnimplementedToolPlugin) Handle(ctx ToolContext) error {
+func (*UnimplementedToolPlugin) Handle(ctx shared.ToolContext) error {
 	return status.Error(codes.Unimplemented, "Not implemented")
 }
 

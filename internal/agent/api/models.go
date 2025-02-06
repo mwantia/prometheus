@@ -5,7 +5,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/mwantia/queueverse/internal/registry"
-	"github.com/mwantia/queueverse/pkg/plugin/provider"
+	"github.com/mwantia/queueverse/pkg/plugin/shared"
 )
 
 func HandleGetModels(reg *registry.Registry) gin.HandlerFunc {
@@ -15,7 +15,7 @@ func HandleGetModels(reg *registry.Registry) gin.HandlerFunc {
 			c.AbortWithError(http.StatusBadRequest, err)
 		}
 
-		result := []provider.Model{}
+		result := []shared.Model{}
 		for _, prov := range providers {
 
 			info, err := prov.GetPluginInfo()

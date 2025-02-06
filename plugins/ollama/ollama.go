@@ -3,19 +3,19 @@ package ollama
 import (
 	"log"
 
-	"github.com/mwantia/queueverse/pkg/plugin/provider"
+	"github.com/mwantia/queueverse/pkg/plugin/shared"
 	"github.com/mwantia/queueverse/plugins/ollama/api"
 )
 
-func (p *OllamaProvider) GetModels() (*[]provider.Model, error) {
+func (p *OllamaProvider) GetModels() (*[]shared.Model, error) {
 	tags, err := p.Client.Tags(p.Context)
 	if err != nil {
 		return nil, err
 	}
 
-	resp := make([]provider.Model, 0)
+	resp := make([]shared.Model, 0)
 	for _, tag := range tags {
-		resp = append(resp, provider.Model{
+		resp = append(resp, shared.Model{
 			Name: tag.Name,
 			Metadata: map[string]any{
 				"size":   tag.Size,
@@ -26,9 +26,9 @@ func (p *OllamaProvider) GetModels() (*[]provider.Model, error) {
 	return &resp, nil
 }
 
-func (p *OllamaProvider) Chat(input provider.ChatRequest) (*provider.ChatResponse, error) {
+func (p *OllamaProvider) Chat(input shared.ChatRequest, handler shared.ProviderToolHandler) (*shared.ChatResponse, error) {
 	tools := make([]api.ToolDefinition, 0)
-	for _, tool := range input.Tools {
+	for _, tool := range handler.GetTools() {
 
 		properties := make(map[string]api.ToolProperty, 0)
 		for name, property := range tool.Properties {
@@ -67,7 +67,7 @@ func (p *OllamaProvider) Chat(input provider.ChatRequest) (*provider.ChatRespons
 		ContextSize: 4096,
 	}
 
-	var output provider.ChatResponse
+	var output shared.ChatResponse
 
 	if err := p.Client.Chat(p.Context, request, func(response api.ChatResponse) error {
 		log.Printf("%v", response)
@@ -79,16 +79,16 @@ func (p *OllamaProvider) Chat(input provider.ChatRequest) (*provider.ChatRespons
 	return &output, nil
 }
 
-func (p *OllamaProvider) Embed(input provider.EmbedRequest) (*provider.EmbedResponse, error) {
+func (p *OllamaProvider) Embed(input shared.EmbedRequest) (*shared.EmbedResponse, error) {
 	request := api.EmbedRequest{
 		Model: input.Model,
 		Input: input.Message.Content,
 	}
 
-	var output provider.EmbedResponse
+	var output shared.EmbedResponse
 
 	if err := p.Client.Embed(p.Context, request, func(response api.EmbedResponse) error {
-		output = provider.EmbedResponse{
+		output = shared.EmbedResponse{
 			Model:      response.Model,
 			Embeddings: response.Embeddings,
 		}

@@ -6,11 +6,17 @@ import (
 	hclog "github.com/hashicorp/go-hclog"
 	goplugin "github.com/hashicorp/go-plugin"
 	"github.com/mwantia/queueverse/pkg/plugin/base"
+	"github.com/mwantia/queueverse/pkg/plugin/shared"
 )
 
 type ProviderPluginImpl struct {
 	goplugin.NetRPCUnsupportedPlugin
 	Impl ProviderPlugin
+}
+
+type ChatArgs struct {
+	Request shared.ChatRequest
+	Handler shared.ProviderToolHandler
 }
 
 func Serve(impl ProviderPlugin, logger hclog.Logger) error {

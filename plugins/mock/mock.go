@@ -3,13 +3,13 @@ package mock
 import (
 	"strings"
 
-	"github.com/mwantia/queueverse/pkg/plugin/provider"
+	"github.com/mwantia/queueverse/pkg/plugin/shared"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
-func (*MockProvider) GetModels() (*[]provider.Model, error) {
-	return &[]provider.Model{
+func (*MockProvider) GetModels() (*[]shared.Model, error) {
+	return &[]shared.Model{
 		{
 			Name: MockLoremIpsumModel08,
 			Metadata: map[string]any{
@@ -31,8 +31,16 @@ func (*MockProvider) GetModels() (*[]provider.Model, error) {
 	}, nil
 }
 
-func (*MockProvider) Chat(req provider.ChatRequest) (*provider.ChatResponse, error) {
+func (p *MockProvider) Chat(req shared.ChatRequest, handler shared.ProviderToolHandler) (*shared.ChatResponse, error) {
 	var text strings.Builder
+
+	result, _ := handler.Execute(p.Context, shared.ToolFunction{
+		Name: "mock",
+		Arguments: map[string]any{
+			"foo": "bar",
+		},
+	})
+	p.Logger.Warn(result)
 
 	switch req.Model {
 	case MockLoremIpsumModel08:
@@ -49,15 +57,15 @@ func (*MockProvider) Chat(req provider.ChatRequest) (*provider.ChatResponse, err
 		}
 	}
 
-	return &provider.ChatResponse{
+	return &shared.ChatResponse{
 		Model: req.Model,
-		Message: provider.Message{
+		Message: shared.Message{
 			Content: text.String(),
 		},
 		Metadata: req.Metadata,
 	}, nil
 }
 
-func (*MockProvider) Embed(provider.EmbedRequest) (*provider.EmbedResponse, error) {
+func (*MockProvider) Embed(shared.EmbedRequest) (*shared.EmbedResponse, error) {
 	return nil, status.Error(codes.Unavailable, "Embed models are not supported")
 }

@@ -9,8 +9,9 @@ import (
 	"github.com/hibiken/asynq"
 	"github.com/mwantia/queueverse/internal/config"
 	"github.com/mwantia/queueverse/internal/registry"
+	"github.com/mwantia/queueverse/internal/tools"
 	"github.com/mwantia/queueverse/pkg/log"
-	"github.com/mwantia/queueverse/pkg/plugin/provider"
+	"github.com/mwantia/queueverse/pkg/plugin/shared"
 )
 
 func GenerateTaskId() string {
@@ -18,7 +19,7 @@ func GenerateTaskId() string {
 }
 
 func CreateGenerateResponse(info *asynq.TaskInfo) (*GenerateResponse, error) {
-	var output provider.ChatResponse
+	var output shared.ChatResponse
 	if len(info.Result) > 0 {
 		if err := json.Unmarshal(info.Result, &output); err != nil {
 			return nil, fmt.Errorf("failed to unmarshal task response: %w", err)
@@ -50,9 +51,12 @@ func handleGenerateTask(log log.Logger, reg *registry.Registry) func(context.Con
 	return func(ctx context.Context, t *asynq.Task) error {
 		var request GenerateRequest
 
+		payload := t.Payload()
 		startTime := time.Now()
 
-		if err := json.Unmarshal(t.Payload(), &request); err != nil {
+		log.Debug(string(payload))
+
+		if err := json.Unmarshal(payload, &request); err != nil {
 			return fmt.Errorf("failed to unmarshal payload: %w", err)
 		}
 
@@ -63,21 +67,10 @@ func handleGenerateTask(log log.Logger, reg *registry.Registry) func(context.Con
 
 		log.Info("Handle Generate Task", "model", request.Input.Model, "message", request.Input.Message.Content)
 
-		request.Input.Tools = append(request.Input.Tools, provider.ToolDefinition{
-			Name:        "get_current_time",
-			Description: "Get the current time in the specified timezone",
-			Type:        provider.TypeString,
-			Required:    []string{"timezone"},
-			Properties: map[string]provider.ToolProperty{
-				"timezone": {
-					Type:        provider.TypeString,
-					Description: "The timezone to use. Must be a IANA Time Zone",
-				},
-			},
-		})
-
-		response, err := prov.Chat(request.Input)
+		handler := tools.NewTest()
+		response, err := prov.Chat(request.Input, handler)
 		if err != nil {
+			log.Error("failed to generate chat prompt", "error", err)
 			return fmt.Errorf("failed to generate chat prompt: %w", err)
 		}
 
