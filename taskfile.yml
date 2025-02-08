@@ -13,6 +13,7 @@ tasks:
     cmds:
       - go mod download
       - go mod tidy
+
   build:
     cmds:
       - task: setup
